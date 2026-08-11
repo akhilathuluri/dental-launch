@@ -40,10 +40,10 @@ export const Header: React.FC = () => {
     <header className="sticky top-0 z-50 w-full transition-all duration-300 pt-3 sm:pt-4 px-4 sm:px-6 lg:px-8">
       <div className="max-w-[1400px] mx-auto flex items-center justify-between gap-4">
         
-        {/* Logo Badge */}
+        {/* Logo Badge (Matching reference semi-transparent glass pill) */}
         <a
           href="#home"
-          className="flex items-center justify-center px-4 py-2 sm:px-5 sm:py-2.5 bg-[#141C28] text-white font-semibold text-sm sm:text-base tracking-tight rounded-full shadow-sm hover:bg-[#1E293B] transition-colors"
+          className="flex items-center justify-center px-4 py-2 sm:px-6 sm:py-2.5 bg-white/20 backdrop-blur-md border border-white/25 text-white font-medium text-sm sm:text-base tracking-tight rounded-full shadow-xs hover:bg-white/30 transition-colors"
         >
           Dentty
         </a>
