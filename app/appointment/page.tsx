@@ -45,7 +45,7 @@ export default function AppointmentPage() {
           </Link>
 
           <Link href="/" className="px-4 py-1.5 bg-white text-[#111827] font-semibold text-sm rounded-full">
-            Dentty
+            Gahan Dental
           </Link>
         </div>
       </header>
@@ -63,7 +63,7 @@ export default function AppointmentPage() {
                   Online Reservation
                 </span>
                 <h1 className="text-3xl sm:text-4xl font-light leading-tight tracking-tight mb-4">
-                  Schedule your visit with <span className="font-normal">Dentty</span>
+                  Schedule your visit with <span className="font-normal">Gahan Dental</span>
                 </h1>
                 <p className="text-xs sm:text-sm text-white/80 leading-relaxed">
                   Experience comfortable, precision dental care with zero waiting time. Select your service and preferred specialist.

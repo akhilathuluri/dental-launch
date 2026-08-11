@@ -14,7 +14,7 @@ export const Footer: React.FC = () => {
                 href="#home"
                 className="inline-flex items-center justify-center px-4 py-2 bg-white text-[#111827] font-semibold text-sm tracking-tight rounded-full shadow-sm mb-4"
               >
-                Dentty
+                Gahan Dental
               </a>
               <p className="text-xs sm:text-sm text-slate-400 max-w-sm leading-relaxed font-normal">
                 Prevention, diagnosis and treatment of dental and oral diseases. High-end modern dental care tailored to your health.
@@ -112,7 +112,7 @@ export const Footer: React.FC = () => {
 
         {/* Bottom bar */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-400">
-          <p>© {new Date().getFullYear()} Dentty Dental Clinic. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Gahan Dental Dental Clinic. All rights reserved.</p>
           <p className="text-slate-400">Designed & Engineered with Architectural Precision</p>
         </div>
       </div>

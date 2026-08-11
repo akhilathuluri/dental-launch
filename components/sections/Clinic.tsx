@@ -38,7 +38,7 @@ export const Clinic: React.FC = () => {
             <div className="rounded-3xl sm:rounded-[32px] overflow-hidden relative aspect-[3/3.8] bg-slate-200 shadow-sm border border-black/5">
               <Image
                 src="/images/clinic-operating.jpg"
-                alt="Operating suite at Dentty clinic"
+                alt="Operating suite at Gahan Dental clinic"
                 fill
                 sizes="(max-width: 1024px) 100vw, 420px"
                 className="object-cover transition-transform duration-700 hover:scale-105"
@@ -57,7 +57,7 @@ export const Clinic: React.FC = () => {
             <div className="rounded-3xl sm:rounded-[36px] overflow-hidden relative aspect-[3/3.9] bg-slate-200 shadow-md border border-black/5">
               <Image
                 src="/images/clinic-main.jpg"
-                alt="Main reception at Dentty clinic"
+                alt="Main reception at Gahan Dental clinic"
                 fill
                 priority
                 sizes="(max-width: 1024px) 100vw, 550px"
@@ -77,7 +77,7 @@ export const Clinic: React.FC = () => {
             <div className="w-full rounded-2xl sm:rounded-[28px] overflow-hidden relative aspect-[4/3] bg-slate-200 shadow-sm border border-black/5">
               <Image
                 src="/images/clinic-office.jpg"
-                alt="Consultation room at Dentty clinic"
+                alt="Consultation room at Gahan Dental clinic"
                 fill
                 sizes="(max-width: 1024px) 100vw, 320px"
                 className="object-cover transition-transform duration-700 hover:scale-105"

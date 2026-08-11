@@ -36,7 +36,7 @@ export const Header: React.FC = () => {
           href="#home"
           className="flex items-center justify-center px-4 py-2 sm:px-6 sm:py-2.5 bg-white/20 backdrop-blur-md border border-white/25 text-white font-medium text-sm sm:text-base tracking-tight rounded-full shadow-xs hover:bg-white/30 transition-colors"
         >
-          Dentty
+          Gahan Dental
         </a>
 
         {/* Desktop Central Navigation Pill */}
@@ -126,7 +126,7 @@ export const Header: React.FC = () => {
                   onClick={() => setIsOpen(false)}
                   className="px-4 py-2 bg-white/15 border border-white/20 text-white font-medium text-sm rounded-full"
                 >
-                  Dentty
+                  Gahan Dental
                 </a>
 
                 <div className="flex items-center gap-2">

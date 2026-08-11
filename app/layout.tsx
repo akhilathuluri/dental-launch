@@ -15,15 +15,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Dentty — Your Smile Comes First | Premium Dental Clinic",
+  title: "Gahan Dental — Your Smile Comes First | Premium Dental Clinic",
   description: "Modern, high-end dental clinic providing expert therapeutic treatment, 3D scans, surgery, and pediatric care with an architectural aesthetic.",
-  keywords: ["Dental Clinic", "Dentty", "3D Scans", "Teeth Cleaning", "Pediatric Dentist", "Dental Surgery"],
+  keywords: ["Dental Clinic", "Gahan Dental", "3D Scans", "Teeth Cleaning", "Pediatric Dentist", "Dental Surgery"],
   openGraph: {
-    title: "Dentty — Premium Dental Clinic",
+    title: "Gahan Dental — Premium Dental Clinic",
     description: "Your smile comes first. Experience modern architectural dental care.",
     type: "website",
     locale: "en_US",
-    siteName: "Dentty Dental Clinic",
+    siteName: "Gahan Dental Dental Clinic",
   },
 };
 

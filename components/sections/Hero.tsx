@@ -64,7 +64,7 @@ export const Hero: React.FC = () => {
             {/* Natural smiling patient lifestyle photo */}
             <Image
               src="/images/hero-patient.jpg"
-              alt="Smiling patient at Dentty dental clinic"
+              alt="Smiling patient at Gahan Dental dental clinic"
               fill
               priority
               sizes="(max-width: 1200px) 100vw, 1400px"
