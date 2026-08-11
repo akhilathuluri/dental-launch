@@ -3,33 +3,33 @@
 import React from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, ArrowRight } from 'lucide-react';
 import { SectionLabel } from '@/components/ui/SectionLabel';
 import { servicesData } from '@/data/services';
 
 export const Services: React.FC = () => {
   return (
-    <section id="services" className="w-full py-12 sm:py-20 px-4 sm:px-6 lg:px-8 bg-[#F7F8FA]">
-      <div className="max-w-[1400px] mx-auto">
+    <section id="services" className="w-full py-16 sm:py-24 px-4 sm:px-8 lg:px-12 bg-[#F7F8FA] text-[#111827]">
+      <div className="max-w-[1360px] mx-auto">
         
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8 sm:mb-12">
+        <div className="flex flex-row items-end justify-between gap-4 mb-8 sm:mb-12">
           <div>
-            <SectionLabel>Our dental offers</SectionLabel>
-            <h2 className="text-3xl sm:text-5xl lg:text-6xl font-light text-[#111827] tracking-tight">
+            <SectionLabel>Our clinic offers</SectionLabel>
+            <h2 className="text-4xl sm:text-6xl lg:text-[4.2rem] font-light text-[#111827] tracking-tight leading-tight">
               Services
             </h2>
           </div>
           <a
             href="#appointment"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#111827] hover:text-[#587A9C] transition-colors"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#1D2736] text-white text-xs sm:text-sm font-medium rounded-full hover:bg-[#111827] transition-all hover:scale-[1.02] shadow-sm group"
           >
-            <span>View all offers</span>
-            <ArrowUpRight className="w-4 h-4" />
+            <span>View more</span>
+            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
           </a>
         </div>
 
-        {/* Asymmetric Grid */}
+        {/* Asymmetric Reference Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-5 sm:gap-6">
           
           {/* Card 1: 3D Scans and X-rays (Top Left, Large) */}
@@ -39,7 +39,7 @@ export const Services: React.FC = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.05 }}
-            className="lg:col-span-8 group relative rounded-2xl sm:rounded-3xl overflow-hidden aspect-[16/10] sm:aspect-[16/9] lg:aspect-[1.9/1] bg-slate-900 text-white p-5 sm:p-7 flex flex-col justify-between shadow-sm hover:shadow-lg transition-all"
+            className="lg:col-span-8 group relative rounded-3xl overflow-hidden aspect-[16/10] sm:aspect-[16/9] lg:aspect-[1.9/1] bg-slate-900 text-white p-5 sm:p-7 flex flex-col justify-between shadow-sm hover:shadow-lg transition-all"
           >
             <Image
               src="/images/service-xray.jpg"
@@ -61,11 +61,8 @@ export const Services: React.FC = () => {
 
             <div className="relative z-10">
               <h3 className="text-xl sm:text-3xl font-light text-white tracking-tight mb-1">
-                3D scans and X-rays
+                3d scans and x-rays
               </h3>
-              <p className="text-xs sm:text-sm text-slate-300 max-w-md font-normal line-clamp-2">
-                High-precision digital 3D tomography and low-radiation panoramic scans for exact treatment planning.
-              </p>
             </div>
           </motion.a>
 
@@ -76,11 +73,11 @@ export const Services: React.FC = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.15 }}
-            className="lg:col-span-4 group relative rounded-2xl sm:rounded-3xl overflow-hidden aspect-[4/3] lg:aspect-auto bg-slate-900 text-white p-5 sm:p-7 flex flex-col justify-between shadow-sm hover:shadow-lg transition-all"
+            className="lg:col-span-4 group relative rounded-3xl overflow-hidden aspect-[4/3] lg:aspect-auto bg-slate-900 text-white p-5 sm:p-7 flex flex-col justify-between shadow-sm hover:shadow-lg transition-all"
           >
             <Image
               src="/images/service-surgery.jpg"
-              alt="Dental surgery"
+              alt="Surgery"
               fill
               sizes="(max-width: 1024px) 100vw, 450px"
               className="object-cover opacity-80 group-hover:scale-105 transition-transform duration-700"
@@ -97,12 +94,9 @@ export const Services: React.FC = () => {
             </div>
 
             <div className="relative z-10">
-              <h3 className="text-xl sm:text-2xl font-light text-white tracking-tight mb-1">
+              <h3 className="text-xl sm:text-2xl font-light text-white tracking-tight">
                 Surgery
               </h3>
-              <p className="text-xs text-slate-300 font-normal line-clamp-2">
-                Painless surgical interventions and wisdom tooth extractions.
-              </p>
             </div>
           </motion.a>
 
@@ -113,7 +107,7 @@ export const Services: React.FC = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.25 }}
-            className="lg:col-span-4 group relative rounded-2xl sm:rounded-3xl overflow-hidden aspect-[4/3] lg:aspect-[1.3/1] bg-slate-900 text-white p-5 sm:p-7 flex flex-col justify-between shadow-sm hover:shadow-lg transition-all"
+            className="lg:col-span-4 group relative rounded-3xl overflow-hidden aspect-[4/3] lg:aspect-[1.3/1] bg-slate-900 text-white p-5 sm:p-7 flex flex-col justify-between shadow-sm hover:shadow-lg transition-all"
           >
             <Image
               src="/images/service-cleaning.jpg"
@@ -134,12 +128,9 @@ export const Services: React.FC = () => {
             </div>
 
             <div className="relative z-10">
-              <h3 className="text-xl sm:text-2xl font-light text-white tracking-tight mb-1">
+              <h3 className="text-xl sm:text-2xl font-light text-white tracking-tight">
                 Dental cleaning
               </h3>
-              <p className="text-xs text-slate-300 font-normal line-clamp-2">
-                Professional hygiene, ultrasonic scaling, and tooth polishing.
-              </p>
             </div>
           </motion.a>
 
@@ -149,7 +140,7 @@ export const Services: React.FC = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.35 }}
-            className="lg:col-span-3 rounded-2xl sm:rounded-3xl bg-[#EBEFE6] text-[#111827] p-6 sm:p-7 flex flex-col justify-between border border-black/5"
+            className="lg:col-span-3 rounded-3xl bg-[#EBEFE6] text-[#111827] p-6 sm:p-7 flex flex-col justify-between border border-black/5"
           >
             <span className="text-xs text-slate-500 font-medium tracking-wide">
               We care about you
@@ -159,9 +150,6 @@ export const Services: React.FC = () => {
                 Your smile<br />is our priority
               </h3>
             </div>
-            <p className="text-xs text-slate-500 font-normal">
-              Modern gentle equipment ensuring absolute comfort at every step.
-            </p>
           </motion.div>
 
           {/* Card 5: Pediatric general practitioner (Bottom Right) */}
@@ -171,7 +159,7 @@ export const Services: React.FC = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.45 }}
-            className="lg:col-span-5 group relative rounded-2xl sm:rounded-3xl overflow-hidden aspect-[16/10] lg:aspect-[1.6/1] bg-slate-900 text-white p-5 sm:p-7 flex flex-col justify-between shadow-sm hover:shadow-lg transition-all"
+            className="lg:col-span-5 group relative rounded-3xl overflow-hidden aspect-[16/10] lg:aspect-[1.6/1] bg-slate-900 text-white p-5 sm:p-7 flex flex-col justify-between shadow-sm hover:shadow-lg transition-all"
           >
             <Image
               src="/images/service-pediatric.jpg"
@@ -192,12 +180,9 @@ export const Services: React.FC = () => {
             </div>
 
             <div className="relative z-10">
-              <h3 className="text-xl sm:text-2xl font-light text-white tracking-tight mb-1">
-                Pediatric general practitioner
+              <h3 className="text-xl sm:text-2xl font-light text-white tracking-tight">
+                Paediatric general practitioner
               </h3>
-              <p className="text-xs text-slate-300 font-normal line-clamp-2">
-                Specialized dental care and preventive treatments for children.
-              </p>
             </div>
           </motion.a>
 
