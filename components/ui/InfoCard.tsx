@@ -5,13 +5,14 @@ interface InfoCardProps {
   title: string;
   description: string;
   href?: string;
+  className?: string;
 }
 
-export const InfoCard: React.FC<InfoCardProps> = ({ title, description, href = "#appointment" }) => {
+export const InfoCard: React.FC<InfoCardProps> = ({ title, description, href = "#appointment", className = "" }) => {
   return (
     <a
       href={href}
-      className="group relative flex flex-col justify-between p-4 sm:p-5 rounded-2xl bg-white/95 backdrop-blur-md border border-white/40 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5"
+      className={`group relative flex flex-col justify-between p-4 sm:p-5 rounded-2xl bg-white/95 backdrop-blur-md border border-white/40 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5 ${className}`}
     >
       <div>
         <div className="flex items-center justify-between gap-2 mb-1.5 sm:mb-2">

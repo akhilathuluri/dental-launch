@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Calendar, Clock, CheckCircle2, ArrowRight } from 'lucide-react';
 import { SectionLabel } from '@/components/ui/SectionLabel';
-import { Button } from '@/components/ui/Button';
 
 export const Appointment: React.FC = () => {
   const [submitted, setSubmitted] = useState(false);
@@ -23,7 +22,6 @@ export const Appointment: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Simulate future API submission
     setTimeout(() => {
       setLoading(false);
       setSubmitted(true);
@@ -31,8 +29,8 @@ export const Appointment: React.FC = () => {
   };
 
   return (
-    <section id="appointment" className="w-full py-12 sm:py-20 px-3 sm:px-6 lg:px-8">
-      <div className="max-w-[1400px] mx-auto bg-[#141C28] text-white rounded-3xl sm:rounded-[36px] lg:rounded-[44px] p-6 sm:p-12 lg:p-16 relative overflow-hidden shadow-2xl">
+    <section id="appointment" className="w-full py-8 sm:py-16 px-0 sm:px-4 lg:px-6">
+      <div className="w-full max-w-[1440px] mx-auto bg-[#141C28] text-white rounded-2xl sm:rounded-[36px] lg:rounded-[44px] p-6 sm:p-12 lg:p-16 relative overflow-hidden shadow-2xl">
         
         {/* Subtle background ambient glow */}
         <div className="absolute -top-24 -right-24 w-96 h-96 bg-[#587A9C]/20 rounded-full blur-3xl pointer-events-none" />
