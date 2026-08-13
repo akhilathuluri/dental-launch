@@ -1,12 +1,36 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { InfoCard } from '@/components/ui/InfoCard';
 import { Header } from '@/components/layout/Header';
 
 export const Hero: React.FC = () => {
+  const [currentDay, setCurrentDay] = useState('');
+  const [currentTime, setCurrentTime] = useState('');
+
+  useEffect(() => {
+    const updateDateTime = () => {
+      const now = new Date();
+      const dayName = now.toLocaleDateString('en-US', { weekday: 'long' });
+      const formattedTime = now
+        .toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+        })
+        .toLowerCase();
+
+      setCurrentDay(`Today is ${dayName}`);
+      setCurrentTime(formattedTime);
+    };
+
+    updateDateTime();
+    const interval = setInterval(updateDateTime, 1000); // Live real-time update every second
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <section id="home" className="w-full pt-0 sm:pt-2 pb-6 px-0 sm:px-4 lg:px-6">
       <div className="w-full max-w-[1440px] mx-auto bg-[#587A9C] text-white rounded-b-3xl sm:rounded-[36px] lg:rounded-[44px] overflow-hidden shadow-xl relative">
@@ -46,10 +70,13 @@ export const Hero: React.FC = () => {
                 <p className="text-white/80 text-xs sm:text-sm">Saturday: 11:00–16:00</p>
               </div>
 
-              {/* Status Pill Badge */}
-              <div className="inline-flex items-center gap-3 px-4 py-2 bg-white/20 backdrop-blur-md border border-white/25 rounded-full text-xs font-normal text-white shadow-xs">
-                <span>Today is Monday</span>
-                <span className="font-medium">3:21 pm</span>
+              {/* Real-time Status Pill Badge with Device Time */}
+              <div
+                suppressHydrationWarning
+                className="inline-flex items-center gap-3 px-4 py-2 bg-white/20 backdrop-blur-md border border-white/25 rounded-full text-xs font-normal text-white shadow-xs"
+              >
+                <span>{currentDay || 'Clinic Open'}</span>
+                <span className="font-medium font-mono">{currentTime || '--:--'}</span>
               </div>
             </motion.div>
           </div>
@@ -64,7 +91,7 @@ export const Hero: React.FC = () => {
             {/* Natural smiling patient lifestyle photo */}
             <Image
               src="/images/hero-patient.jpg"
-              alt="Smiling patient at Gahan Dental dental clinic"
+              alt="Smiling patient at Gahan Dental clinic"
               fill
               priority
               sizes="(max-width: 1200px) 100vw, 1400px"
