@@ -9,19 +9,9 @@ export interface WhatsAppTemplateComponent {
   }>;
 }
 
-export interface SendWhatsAppOptions {
-  to: string;
-  messageText?: string;
-  templateName?: string;
-  templateLanguage?: string;
-  templateComponents?: WhatsAppTemplateComponent[];
-}
-
 export function sanitizePhoneNumber(to: string): string {
-  // Remove all non-numeric characters
   let cleaned = to.replace(/[^0-9]/g, '');
 
-  // If standard 10-digit number without country code
   if (cleaned.length === 10) {
     cleaned = '91' + cleaned;
   }
@@ -94,7 +84,7 @@ export async function sendWhatsAppMessage(
 
       // Automatic fallback for 24h window (error code 131047)
       if (data.error?.code === 131047 && !templateName) {
-        console.warn('Meta 24h conversation window closed. Attempting fallback to pre-approved template...');
+        console.warn('Meta 24h conversation window closed. Attempting fallback to pre-approved template hello_world...');
         return sendWhatsAppMessage(to, messageText, 'hello_world');
       }
 
@@ -114,4 +104,25 @@ export async function sendWhatsAppMessage(
       error: error.message || 'Network error connecting to Meta WhatsApp API',
     };
   }
+}
+
+// Helper specifically for sending Pre-Approved Meta Templates with dynamic parameters {{1}}, {{2}}, etc.
+export async function sendWhatsAppTemplateMessage(
+  to: string,
+  templateName: string,
+  bodyParams: string[] = []
+) {
+  const components: WhatsAppTemplateComponent[] = [];
+
+  if (bodyParams.length > 0) {
+    components.push({
+      type: 'body',
+      parameters: bodyParams.map((param) => ({
+        type: 'text',
+        text: String(param),
+      })),
+    });
+  }
+
+  return sendWhatsAppMessage(to, undefined, templateName, components);
 }
