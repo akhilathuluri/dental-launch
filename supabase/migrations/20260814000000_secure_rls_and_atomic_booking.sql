@@ -1,5 +1,5 @@
 -- Migration: 20260814000000_secure_rls_and_atomic_booking.sql
--- Description: Revoke insecure public SELECT on appointments & whatsapp_otps, add atomic booking RPC with row locking, and add capacity restoration RPC.
+-- Description: Revoke insecure public SELECT on appointments & whatsapp_otps, add atomic booking RPC with row locking, add verification RPC, and add capacity restoration RPC.
 
 -- 1. Drop existing policies to prevent conflicts
 DROP POLICY IF EXISTS "Allow public select of own appointments" ON public.appointments;
@@ -29,7 +29,48 @@ CREATE POLICY "Allow public update of own unverified OTP" ON public.whatsapp_otp
 CREATE POLICY "Allow admin full access to OTPs" ON public.whatsapp_otps
   FOR ALL USING (auth.role() = 'authenticated');
 
--- 4. Atomic Booking Function with Row-Level Locking (Pessimistic concurrency control)
+-- 4. Secure OTP Verification Function
+CREATE OR REPLACE FUNCTION public.verify_whatsapp_otp(
+  p_whatsapp_number TEXT,
+  p_otp_code TEXT
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_otp_id UUID;
+BEGIN
+  -- Look for unverified matching OTP within validity timeframe
+  SELECT id INTO v_otp_id
+  FROM public.whatsapp_otps
+  WHERE whatsapp_number = p_whatsapp_number
+    AND otp_code = TRIM(p_otp_code)
+    AND verified = false
+    AND expires_at > now()
+  ORDER BY created_at DESC
+  LIMIT 1;
+
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object(
+      'success', false,
+      'error', 'Invalid or expired verification code. Please request a new OTP.'
+    );
+  END IF;
+
+  -- Mark OTP as verified
+  UPDATE public.whatsapp_otps
+  SET verified = true
+  WHERE id = v_otp_id;
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'message', 'WhatsApp verification code verified successfully.'
+  );
+END;
+$$;
+
+-- 5. Atomic Booking Function with Row-Level Locking (Pessimistic concurrency control)
 CREATE OR REPLACE FUNCTION public.book_appointment_slot(
   p_patient_name TEXT,
   p_whatsapp_number TEXT,
@@ -100,7 +141,7 @@ BEGIN
 END;
 $$;
 
--- 5. Cancellation Function to restore slot capacity
+-- 6. Cancellation Function to restore slot capacity
 CREATE OR REPLACE FUNCTION public.cancel_appointment_slot(
   p_appointment_id UUID
 )

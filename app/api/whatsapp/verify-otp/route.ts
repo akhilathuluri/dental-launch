@@ -15,44 +15,29 @@ export async function POST(request: Request) {
 
     const sanitizedPhone = sanitizePhoneNumber(whatsapp_number);
     const cleanedOtp = otp_code.toString().trim();
-    const nowIso = new Date().toISOString();
 
-    // Query for valid unverified OTP within the expiry window
-    const { data: otpRecords, error: fetchError } = await supabase
-      .from('whatsapp_otps')
-      .select('id, expires_at, verified')
-      .eq('whatsapp_number', sanitizedPhone)
-      .eq('otp_code', cleanedOtp)
-      .eq('verified', false)
-      .gt('expires_at', nowIso)
-      .order('created_at', { ascending: false })
-      .limit(1);
+    // Call secure Postgres RPC function with SECURITY DEFINER
+    const { data, error } = await supabase.rpc('verify_whatsapp_otp', {
+      p_whatsapp_number: sanitizedPhone,
+      p_otp_code: cleanedOtp,
+    });
 
-    if (fetchError) {
-      console.error('Error fetching OTP from database:', fetchError);
+    if (error) {
+      console.error('Error in verify_whatsapp_otp RPC:', error);
       return NextResponse.json(
         { success: false, error: 'Database verification error. Please try again.' },
         { status: 500 }
       );
     }
 
-    if (!otpRecords || otpRecords.length === 0) {
+    if (!data || !data.success) {
       return NextResponse.json(
-        { success: false, error: 'Invalid or expired verification code. Please request a new OTP.' },
+        {
+          success: false,
+          error: data?.error || 'Invalid or expired verification code. Please request a new OTP.',
+        },
         { status: 400 }
       );
-    }
-
-    const matchingOtp = otpRecords[0];
-
-    // Mark OTP as verified
-    const { error: updateError } = await supabase
-      .from('whatsapp_otps')
-      .update({ verified: true })
-      .eq('id', matchingOtp.id);
-
-    if (updateError) {
-      console.error('Error updating OTP status:', updateError);
     }
 
     return NextResponse.json({
