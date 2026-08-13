@@ -3,7 +3,7 @@ const accessToken = 'EAAWRhtnxnr0BSCr6DrZBK30Mn4TdDeLae5NdZAX5bME13CHZA9ZCyxZA9d
 
 async function test() {
   const endpoint = `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`;
-  
+
   // Test sending to 15552014485 (the test number provided by user)
   const payloadText = {
     messaging_product: 'whatsapp',
