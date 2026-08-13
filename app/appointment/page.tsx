@@ -17,11 +17,14 @@ import {
   ChevronRight,
   Send,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  Download,
+  FileText
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Footer } from '@/components/layout/Footer';
 import { allSpecializedServices, primaryServices } from '@/data/services';
+import { generateAppointmentPDF } from '@/lib/pdfReceipt';
 
 interface Slot {
   id: string;
@@ -56,6 +59,7 @@ function AppointmentContent() {
   // Booking Submission State
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bookingDetails, setBookingDetails] = useState<any>(null);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
 
   // Available Date Options (Next 7 Days)
   const [dateOptions, setDateOptions] = useState<string[]>([]);
@@ -173,7 +177,7 @@ function AppointmentContent() {
     }
   };
 
-  // Handle Step 2: Server-Side WhatsApp OTP Verification
+  // Handle Step 2: Server-Side WhatsApp OTP Verification via Postgres RPC
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!otp.trim()) {
@@ -248,7 +252,7 @@ function AppointmentContent() {
 
       const bookingId = rpcData?.appointment_id || `GAHAN-${Math.floor(100000 + Math.random() * 900000)}`;
 
-      // 2. Dispatch Official WhatsApp Confirmation Ticket via Meta API
+      // 2. Dispatch Official WhatsApp Confirmation Ticket via Meta API automatically
       try {
         await fetch('/api/whatsapp/send-confirmation', {
           method: 'POST',
@@ -281,6 +285,19 @@ function AppointmentContent() {
       console.error('Booking submission exception:', err);
       setStepError(err.message || 'An unexpected error occurred while booking. Please try again.');
       setIsSubmitting(false);
+    }
+  };
+
+  // Handle Optional PDF Receipt Download
+  const handleDownloadPDF = () => {
+    if (!bookingDetails) return;
+    setIsDownloadingPdf(true);
+    try {
+      generateAppointmentPDF(bookingDetails);
+    } catch (err) {
+      console.error('Error generating PDF:', err);
+    } finally {
+      setTimeout(() => setIsDownloadingPdf(false), 800);
     }
   };
 
@@ -661,14 +678,18 @@ function AppointmentContent() {
                         setStepError('');
                         setStep(2);
                       }}
-                      className="px-5 py-3 text-slate-600 hover:text-[#111827] text-xs font-semibold"
+                      className="px-5 py-3 text-slate-600 hover:text-[#111827] text-xs font-semibold cursor-pointer"
                     >
                       ← Back to Verification
                     </button>
 
                     <button
                       type="button"
-                      disabled={!selectedSlot || isSubmitting || (selectedSlot && selectedSlot.booked_count >= selectedSlot.max_capacity)}
+                      disabled={
+                        !selectedSlot ||
+                        isSubmitting ||
+                        (selectedSlot && selectedSlot.booked_count >= selectedSlot.max_capacity)
+                      }
                       onClick={handleCompleteBooking}
                       className="py-3.5 px-8 bg-[#141C28] text-white font-semibold text-xs sm:text-sm rounded-full hover:bg-[#1E293B] transition-all shadow-lg disabled:opacity-50 flex items-center gap-2 cursor-pointer"
                     >
@@ -679,7 +700,7 @@ function AppointmentContent() {
                 </motion.div>
               )}
 
-              {/* STEP 4: UI Confirmation Screen & Real Meta WhatsApp Notification */}
+              {/* STEP 4: UI Confirmation Screen, Auto WhatsApp Ticket & Optional PDF Download */}
               {step === 4 && bookingDetails && (
                 <motion.div
                   key="step4"
@@ -701,11 +722,11 @@ function AppointmentContent() {
                     </h2>
                   </div>
 
-                  {/* Confirmation Card */}
+                  {/* Confirmation Summary Card */}
                   <div className="bg-[#F7F8FA] p-6 rounded-3xl border border-slate-200 text-left space-y-3.5 text-xs text-[#111827]">
                     <div className="flex justify-between items-center pb-3 border-b border-slate-200">
-                      <span className="text-slate-400">Appointment ID</span>
-                      <span className="font-mono font-bold text-[#141C28]">
+                      <span className="text-slate-400 font-medium">Appointment Reference</span>
+                      <span className="font-mono font-bold text-[#141C28] bg-white px-2.5 py-1 rounded-lg border border-slate-200">
                         {bookingDetails.id}
                       </span>
                     </div>
@@ -716,7 +737,7 @@ function AppointmentContent() {
                     </div>
 
                     <div className="flex justify-between">
-                      <span className="text-slate-500">WhatsApp Number:</span>
+                      <span className="text-slate-500">WhatsApp Mobile:</span>
                       <span className="font-semibold">{bookingDetails.whatsapp}</span>
                     </div>
 
@@ -733,22 +754,32 @@ function AppointmentContent() {
                     </div>
                   </div>
 
-                  {/* Meta WhatsApp Notification Badge */}
+                  {/* Meta WhatsApp Automatic Notification Badge */}
                   <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center gap-3 text-left">
                     <MessageSquare className="w-6 h-6 text-emerald-600 shrink-0" />
                     <div className="text-xs text-emerald-900">
-                      <p className="font-semibold">WhatsApp Ticket Dispatched!</p>
-                      <p className="text-[11px] text-emerald-700">
-                        A detailed confirmation ticket has been dispatched via Meta Cloud API to{' '}
-                        {bookingDetails.whatsapp}.
+                      <p className="font-semibold">WhatsApp Ticket Sent Automatically!</p>
+                      <p className="text-[11px] text-emerald-700 mt-0.5">
+                        A full digital booking confirmation has been dispatched to {bookingDetails.whatsapp}.
                       </p>
                     </div>
                   </div>
 
+                  {/* Actions: Optional PDF Download & Return to Homepage */}
                   <div className="pt-2 flex flex-col sm:flex-row gap-3">
+                    <button
+                      type="button"
+                      onClick={handleDownloadPDF}
+                      disabled={isDownloadingPdf}
+                      className="w-full sm:w-1/2 py-3.5 px-6 bg-white text-[#111827] border border-slate-300 font-semibold text-xs sm:text-sm rounded-full hover:bg-slate-100 transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer active:scale-[0.98]"
+                    >
+                      <Download className="w-4 h-4 text-[#587A9C]" />
+                      <span>{isDownloadingPdf ? 'Generating PDF...' : 'Download PDF Pass'}</span>
+                    </button>
+
                     <Link
                       href="/"
-                      className="w-full py-3.5 px-6 bg-[#141C28] text-white font-semibold text-xs sm:text-sm rounded-full hover:bg-[#1E293B] transition-colors text-center"
+                      className="w-full sm:w-1/2 py-3.5 px-6 bg-[#141C28] text-white font-semibold text-xs sm:text-sm rounded-full hover:bg-[#1E293B] transition-colors text-center flex items-center justify-center cursor-pointer shadow-md"
                     >
                       Return to Homepage
                     </Link>
@@ -767,7 +798,13 @@ function AppointmentContent() {
 
 export default function AppointmentPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#F7F8FA] flex items-center justify-center text-xs text-slate-400">Loading appointment booking...</div>}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#F7F8FA] flex items-center justify-center text-xs text-slate-400">
+          Loading appointment booking...
+        </div>
+      }
+    >
       <AppointmentContent />
     </Suspense>
   );
