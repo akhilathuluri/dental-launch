@@ -1,37 +1,81 @@
-export async function sendWhatsAppMessage(to: string, messageText: string, templateName?: string) {
-  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID || '1252543801277504';
-  const accessToken = process.env.WHATSAPP_ACCESS_TOKEN || 'EAAWRhtnxnr0BSCr6DrZBK30Mn4TdDeLae5NdZAX5bME13CHZA9ZCyxZA9dqZBR5T3PZCsZCcUuYKVczWFZAGGKuYUbPTyJrYVZCbJ4DBDRhkSV0IMsZB4NoqBOZAVfC3nsKrVHrf2qQtubEn3V1bk6rRFKJf4PSmgyfXchSUugM3ZBYmSxUaWQOBtZA8pmnBtXztsJnXleg1ZCiTHTs1ZCFrplNiHy9UKZBzrgw4NEyN9eKw2Xp83DOyZCAs7mV0zNQKMe1bvz9RPzCvaIHqyfw6TJIqiDFFEQ0ZCEpYwZDZD';
+export interface WhatsAppTemplateComponent {
+  type: 'header' | 'body' | 'button';
+  sub_type?: string;
+  index?: string;
+  parameters: Array<{
+    type: 'text' | 'currency' | 'date_time' | 'image' | 'document' | 'video';
+    text?: string;
+    [key: string]: any;
+  }>;
+}
 
-  // Sanitize phone number (remove +, spaces, hyphens)
-  let recipient = to.replace(/[^0-9]/g, '');
+export interface SendWhatsAppOptions {
+  to: string;
+  messageText?: string;
+  templateName?: string;
+  templateLanguage?: string;
+  templateComponents?: WhatsAppTemplateComponent[];
+}
 
-  if (recipient.length === 10) {
-    recipient = '91' + recipient;
+export function sanitizePhoneNumber(to: string): string {
+  // Remove all non-numeric characters
+  let cleaned = to.replace(/[^0-9]/g, '');
+
+  // If standard 10-digit number without country code
+  if (cleaned.length === 10) {
+    cleaned = '91' + cleaned;
   }
 
+  return cleaned;
+}
+
+export async function sendWhatsAppMessage(
+  to: string,
+  messageText?: string,
+  templateName?: string,
+  templateComponents?: WhatsAppTemplateComponent[]
+) {
+  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+  const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
+
+  if (!phoneNumberId || !accessToken) {
+    console.error('WhatsApp API Error: WHATSAPP_PHONE_NUMBER_ID or WHATSAPP_ACCESS_TOKEN is missing in environment.');
+    return {
+      success: false,
+      error: 'WhatsApp Meta Cloud API credentials not configured in server environment.',
+    };
+  }
+
+  const recipient = sanitizePhoneNumber(to);
   const endpoint = `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`;
 
-  // Payload: If template specified, send Template Message (bypasses 24h window), else Text Message
-  const payload = templateName
-    ? {
-        messaging_product: 'whatsapp',
-        to: recipient,
-        type: 'template',
-        template: {
-          name: templateName,
-          language: { code: 'en_US' },
-        },
-      }
-    : {
-        messaging_product: 'whatsapp',
-        recipient_type: 'individual',
-        to: recipient,
-        type: 'text',
-        text: {
-          preview_url: false,
-          body: messageText,
-        },
-      };
+  // Construct Meta payload
+  let payload: Record<string, any>;
+
+  if (templateName) {
+    payload = {
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to: recipient,
+      type: 'template',
+      template: {
+        name: templateName,
+        language: { code: 'en_US' },
+        ...(templateComponents && templateComponents.length > 0 ? { components: templateComponents } : {}),
+      },
+    };
+  } else {
+    payload = {
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to: recipient,
+      type: 'text',
+      text: {
+        preview_url: false,
+        body: messageText || '',
+      },
+    };
+  }
 
   try {
     const response = await fetch(endpoint, {
@@ -46,11 +90,11 @@ export async function sendWhatsAppMessage(to: string, messageText: string, templ
     const data = await response.json();
 
     if (!response.ok) {
-      console.error('Meta WhatsApp API Error:', data);
-      
-      // If error 131047 (Re-engagement 24h window error), attempt automatic fallback to hello_world template
+      console.error('Meta WhatsApp API Error response:', data);
+
+      // Automatic fallback for 24h window (error code 131047)
       if (data.error?.code === 131047 && !templateName) {
-        console.log('Attempting Meta Template hello_world fallback for 24h window...');
+        console.warn('Meta 24h conversation window closed. Attempting fallback to pre-approved template...');
         return sendWhatsAppMessage(to, messageText, 'hello_world');
       }
 
@@ -64,7 +108,10 @@ export async function sendWhatsAppMessage(to: string, messageText: string, templ
 
     return { success: true, data };
   } catch (error: any) {
-    console.error('WhatsApp API Fetch Error:', error);
-    return { success: false, error: error.message || 'Network error connecting to Meta API' };
+    console.error('WhatsApp API Network Fetch Error:', error);
+    return {
+      success: false,
+      error: error.message || 'Network error connecting to Meta WhatsApp API',
+    };
   }
 }

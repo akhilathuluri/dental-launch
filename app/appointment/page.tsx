@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft,
@@ -15,10 +16,12 @@ import {
   Sparkles,
   ChevronRight,
   Send,
-  AlertCircle
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Footer } from '@/components/layout/Footer';
+import { allSpecializedServices, primaryServices } from '@/data/services';
 
 interface Slot {
   id: string;
@@ -29,16 +32,19 @@ interface Slot {
   is_active: boolean;
 }
 
-export default function AppointmentPage() {
+function AppointmentContent() {
+  const searchParams = useSearchParams();
+  const initialServiceParam = searchParams.get('service');
+
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
 
   // Form Fields State
   const [name, setName] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [otp, setOtp] = useState('');
-  const [generatedOtp, setGeneratedOtp] = useState('');
   const [sendingOtp, setSendingOtp] = useState(false);
-  const [otpError, setOtpError] = useState('');
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
+  const [stepError, setStepError] = useState('');
 
   // Service, Date & Slot State
   const [selectedService, setSelectedService] = useState('3D scans and x-rays');
@@ -53,6 +59,26 @@ export default function AppointmentPage() {
 
   // Available Date Options (Next 7 Days)
   const [dateOptions, setDateOptions] = useState<string[]>([]);
+
+  // Collect all available services list
+  const serviceOptions = Array.from(
+    new Set([
+      ...primaryServices.filter((s) => !s.isTextCard).map((s) => s.title),
+      ...allSpecializedServices.map((s) => s.title),
+    ])
+  );
+
+  // Pre-fill service from URL if provided
+  useEffect(() => {
+    if (initialServiceParam) {
+      const match = serviceOptions.find(
+        (s) => s.toLowerCase() === initialServiceParam.toLowerCase()
+      );
+      if (match) {
+        setSelectedService(match);
+      }
+    }
+  }, [initialServiceParam]);
 
   useEffect(() => {
     const dates: string[] = [];
@@ -69,113 +95,176 @@ export default function AppointmentPage() {
   }, []);
 
   // Fetch Available Slots from Supabase
-  useEffect(() => {
-    if (!selectedDate) return;
-    async function fetchSlots() {
-      setLoadingSlots(true);
-      const { data } = await supabase
+  const fetchSlots = async (dateToFetch: string) => {
+    if (!dateToFetch) return;
+    setLoadingSlots(true);
+    setStepError('');
+
+    try {
+      const { data, error } = await supabase
         .from('appointment_slots')
         .select('*')
-        .eq('date', selectedDate)
+        .eq('date', dateToFetch)
         .eq('is_active', true)
         .order('time_slot', { ascending: true });
 
+      if (error) {
+        console.error('Error fetching slots:', error);
+      }
+
       if (data) {
         setAvailableSlots(data as Slot[]);
+        // Auto-select first available slot if previous wasn't selected or not for this date
         const openSlot = data.find((s) => s.booked_count < s.max_capacity);
-        if (openSlot) setSelectedSlot(openSlot);
-        else setSelectedSlot(null);
+        if (openSlot) {
+          setSelectedSlot(openSlot);
+        } else {
+          setSelectedSlot(null);
+        }
       }
-      setLoadingSlots(false);
-    }
-    fetchSlots();
-  }, [selectedDate]);
-
-  // Handle Step 1: Send Real Meta WhatsApp OTP
-  const handleSendOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim() || !whatsapp.trim()) return;
-
-    setSendingOtp(true);
-    setOtpError('');
-
-    // Generate 4-digit OTP code
-    const code = Math.floor(1000 + Math.random() * 9000).toString();
-    setGeneratedOtp(code);
-
-    try {
-      await fetch('/api/whatsapp/send-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          whatsapp_number: whatsapp,
-          otp_code: code,
-          patient_name: name,
-        }),
-      });
-
-      setSendingOtp(false);
-      setStep(2);
     } catch (err) {
       console.error(err);
-      setSendingOtp(false);
-      setStep(2);
+    } finally {
+      setLoadingSlots(false);
     }
   };
 
-  // Handle Step 2: Verify WhatsApp OTP
-  const handleVerifyOtp = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (selectedDate) {
+      fetchSlots(selectedDate);
+    }
+  }, [selectedDate]);
+
+  // Handle Step 1: Send Secure WhatsApp OTP via Server API
+  const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (otp.trim() === generatedOtp || otp.trim() === '1234') {
-      setOtpError('');
-      setStep(3);
-    } else {
-      setOtpError('Invalid OTP code. Please enter the verification code sent to your WhatsApp.');
+    if (!name.trim() || !whatsapp.trim()) {
+      setStepError('Please enter both your name and WhatsApp mobile number.');
+      return;
     }
-  };
 
-  // Handle Step 3: Complete Booking Submission & Send Real WhatsApp Confirmation
-  const handleCompleteBooking = async () => {
-    if (!selectedSlot || !selectedDate) return;
-    setIsSubmitting(true);
+    setSendingOtp(true);
+    setStepError('');
 
     try {
-      const { data: apptData } = await supabase
-        .from('appointments')
-        .insert({
-          patient_name: name,
-          whatsapp_number: whatsapp,
-          service: selectedService,
-          slot_id: selectedSlot.id,
-          date: selectedDate,
-          time_slot: selectedSlot.time_slot,
-          status: 'confirmed',
-          whatsapp_sent: true,
-        })
-        .select()
-        .single();
-
-      const bookingId = apptData?.id || `DENT-${Math.floor(100000 + Math.random() * 900000)}`;
-
-      // Update slot capacity
-      await supabase
-        .from('appointment_slots')
-        .update({ booked_count: selectedSlot.booked_count + 1 })
-        .eq('id', selectedSlot.id);
-
-      // Call Real Meta WhatsApp API Endpoint to Send Confirmation Ticket
-      await fetch('/api/whatsapp/send-confirmation', {
+      const res = await fetch('/api/whatsapp/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           whatsapp_number: whatsapp,
           patient_name: name,
-          service: selectedService,
-          date: selectedDate,
-          time_slot: selectedSlot.time_slot,
-          appointment_id: bookingId,
         }),
       });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        setStepError(data.error || 'Failed to dispatch WhatsApp OTP. Please check your number.');
+        setSendingOtp(false);
+        return;
+      }
+
+      setSendingOtp(false);
+      setStep(2);
+    } catch (err: any) {
+      console.error(err);
+      setStepError('Network error sending WhatsApp verification code. Please try again.');
+      setSendingOtp(false);
+    }
+  };
+
+  // Handle Step 2: Server-Side WhatsApp OTP Verification
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otp.trim()) {
+      setStepError('Please enter the 4-digit verification code sent to your WhatsApp.');
+      return;
+    }
+
+    setVerifyingOtp(true);
+    setStepError('');
+
+    try {
+      const res = await fetch('/api/whatsapp/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          whatsapp_number: whatsapp,
+          otp_code: otp.trim(),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        setStepError(data.error || 'Invalid or expired OTP code. Please enter the valid code.');
+        setVerifyingOtp(false);
+        return;
+      }
+
+      setVerifyingOtp(false);
+      setStepError('');
+      setStep(3);
+    } catch (err: any) {
+      console.error(err);
+      setStepError('Server verification error. Please try again.');
+      setVerifyingOtp(false);
+    }
+  };
+
+  // Handle Step 3: Atomic Booking via Postgres RPC with Pessimistic Row Locking
+  const handleCompleteBooking = async () => {
+    if (!selectedSlot || !selectedDate) {
+      setStepError('Please select an available appointment time slot.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setStepError('');
+
+    try {
+      // 1. Call Atomic Postgres RPC to prevent race conditions and overbooking
+      const { data: rpcData, error: rpcError } = await supabase.rpc('book_appointment_slot', {
+        p_patient_name: name.trim(),
+        p_whatsapp_number: whatsapp.trim(),
+        p_service: selectedService,
+        p_slot_id: selectedSlot.id,
+        p_date: selectedDate,
+        p_time_slot: selectedSlot.time_slot,
+      });
+
+      if (rpcError) {
+        console.error('Atomic Booking RPC Error:', rpcError);
+        setStepError(
+          rpcError.message.includes('fully booked')
+            ? 'Sorry! This slot was just taken by another patient. Please choose another slot.'
+            : rpcError.message || 'Failed to book slot. Please pick another available time.'
+        );
+        setIsSubmitting(false);
+        // Refresh slots to show updated availability
+        fetchSlots(selectedDate);
+        return;
+      }
+
+      const bookingId = rpcData?.appointment_id || `GAHAN-${Math.floor(100000 + Math.random() * 900000)}`;
+
+      // 2. Dispatch Official WhatsApp Confirmation Ticket via Meta API
+      try {
+        await fetch('/api/whatsapp/send-confirmation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            whatsapp_number: whatsapp,
+            patient_name: name,
+            service: selectedService,
+            date: selectedDate,
+            time_slot: selectedSlot.time_slot,
+            appointment_id: bookingId,
+          }),
+        });
+      } catch (confirmError) {
+        console.warn('WhatsApp confirmation notification warning:', confirmError);
+      }
 
       setBookingDetails({
         id: bookingId,
@@ -188,16 +277,15 @@ export default function AppointmentPage() {
 
       setIsSubmitting(false);
       setStep(4);
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error('Booking submission exception:', err);
+      setStepError(err.message || 'An unexpected error occurred while booking. Please try again.');
       setIsSubmitting(false);
-      setStep(4);
     }
   };
 
   return (
     <main className="min-h-screen bg-[#F7F8FA] flex flex-col justify-between">
-      
       {/* Top Header Navigation */}
       <header className="sticky top-0 z-50 bg-[#141C28] text-white py-4 px-4 sm:px-8 border-b border-white/10 shadow-md">
         <div className="max-w-[1400px] mx-auto flex items-center justify-between">
@@ -210,7 +298,7 @@ export default function AppointmentPage() {
           </Link>
 
           <Link href="/" className="px-5 py-2 bg-white text-[#111827] font-semibold text-sm rounded-full">
-            Dentty
+            Gahan Dental
           </Link>
         </div>
       </header>
@@ -218,26 +306,49 @@ export default function AppointmentPage() {
       {/* Main Booking Stepper Container */}
       <section className="w-full py-8 sm:py-16 px-4 sm:px-6 lg:px-8 flex-1">
         <div className="max-w-4xl mx-auto bg-white rounded-3xl sm:rounded-[36px] shadow-2xl border border-black/5 overflow-hidden">
-          
           {/* Top Stepper Indicator */}
           <div className="bg-[#141C28] text-white px-6 py-6 sm:px-10 border-b border-white/10 flex items-center justify-between">
             <div className="flex items-center gap-2 sm:gap-4">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold ${step >= 1 ? 'bg-emerald-500 text-white' : 'bg-white/20 text-slate-400'}`}>1</div>
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold ${
+                  step >= 1 ? 'bg-emerald-500 text-white' : 'bg-white/20 text-slate-400'
+                }`}
+              >
+                1
+              </div>
               <span className="hidden sm:inline text-xs font-medium text-slate-300">Contact</span>
-              
+
               <ChevronRight className="w-4 h-4 text-slate-500" />
-              
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold ${step >= 2 ? 'bg-emerald-500 text-white' : 'bg-white/20 text-slate-400'}`}>2</div>
+
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold ${
+                  step >= 2 ? 'bg-emerald-500 text-white' : 'bg-white/20 text-slate-400'
+                }`}
+              >
+                2
+              </div>
               <span className="hidden sm:inline text-xs font-medium text-slate-300">OTP</span>
-              
+
               <ChevronRight className="w-4 h-4 text-slate-500" />
-              
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold ${step >= 3 ? 'bg-emerald-500 text-white' : 'bg-white/20 text-slate-400'}`}>3</div>
+
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold ${
+                  step >= 3 ? 'bg-emerald-500 text-white' : 'bg-white/20 text-slate-400'
+                }`}
+              >
+                3
+              </div>
               <span className="hidden sm:inline text-xs font-medium text-slate-300">Slots</span>
 
               <ChevronRight className="w-4 h-4 text-slate-500" />
-              
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold ${step === 4 ? 'bg-emerald-500 text-white' : 'bg-white/20 text-slate-400'}`}>4</div>
+
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold ${
+                  step === 4 ? 'bg-emerald-500 text-white' : 'bg-white/20 text-slate-400'
+                }`}
+              >
+                4
+              </div>
               <span className="hidden sm:inline text-xs font-medium text-slate-300">Confirmed</span>
             </div>
 
@@ -247,8 +358,15 @@ export default function AppointmentPage() {
           </div>
 
           <div className="p-6 sm:p-12">
+            {/* Global Step Error Banner */}
+            {stepError && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl flex items-center gap-3 text-xs text-red-800">
+                <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
+                <p className="font-medium">{stepError}</p>
+              </div>
+            )}
+
             <AnimatePresence mode="wait">
-              
               {/* STEP 1: Name & WhatsApp Mobile Number */}
               {step === 1 && (
                 <motion.div
@@ -267,7 +385,7 @@ export default function AppointmentPage() {
                       Enter your details
                     </h2>
                     <p className="text-xs sm:text-sm text-slate-500">
-                      Enter your WhatsApp mobile number to receive your OTP verification code.
+                      Enter your mobile number to receive your secure WhatsApp verification code.
                     </p>
                   </div>
 
@@ -296,7 +414,7 @@ export default function AppointmentPage() {
                           type="tel"
                           id="whatsappNumber"
                           required
-                          placeholder="+91 98765 43210"
+                          placeholder="e.g. 9876543210"
                           value={whatsapp}
                           onChange={(e) => setWhatsapp(e.target.value)}
                           className="w-full px-4 py-3.5 border border-slate-200 rounded-2xl text-xs sm:text-sm text-[#111827] focus:outline-none focus:border-[#587A9C] focus:ring-1 focus:ring-[#587A9C] min-h-[48px]"
@@ -305,7 +423,7 @@ export default function AppointmentPage() {
                       </div>
                       <p className="text-[11px] text-slate-400 mt-1.5 flex items-center gap-1">
                         <MessageSquare className="w-3.5 h-3.5 text-emerald-500" />
-                        <span>OTP code will be dispatched to your WhatsApp</span>
+                        <span>A 4-digit OTP will be dispatched via official Meta WhatsApp API</span>
                       </p>
                     </div>
 
@@ -321,7 +439,7 @@ export default function AppointmentPage() {
                 </motion.div>
               )}
 
-              {/* STEP 2: WhatsApp OTP Verification */}
+              {/* STEP 2: Secure Server-Side WhatsApp OTP Verification */}
               {step === 2 && (
                 <motion.div
                   key="step2"
@@ -340,52 +458,45 @@ export default function AppointmentPage() {
                       Enter WhatsApp OTP
                     </h2>
                     <p className="text-xs sm:text-sm text-slate-500">
-                      Verification code dispatched to <span className="font-semibold text-[#111827]">{whatsapp}</span>.
+                      Verification code dispatched to{' '}
+                      <span className="font-semibold text-[#111827]">{whatsapp}</span>.
                     </p>
-                  </div>
-
-                  {/* OTP Code Badge */}
-                  <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs text-emerald-800 flex items-center justify-between">
-                    <span className="flex items-center gap-1.5 font-semibold">
-                      <Sparkles className="w-4 h-4 text-emerald-600" />
-                      <span>WhatsApp OTP Sent:</span>
-                    </span>
-                    <strong className="text-xl text-emerald-900 font-mono tracking-widest bg-emerald-100 px-3 py-1 rounded-xl">{generatedOtp}</strong>
                   </div>
 
                   <form onSubmit={handleVerifyOtp} className="space-y-5">
                     <div>
                       <label htmlFor="otpCode" className="block text-xs font-semibold text-[#111827] mb-1.5">
-                        4-Digit OTP Code *
+                        4-Digit Verification Code *
                       </label>
                       <input
                         type="text"
                         id="otpCode"
                         required
                         maxLength={6}
-                        placeholder="Enter 4-digit code"
+                        placeholder="••••"
                         value={otp}
                         onChange={(e) => setOtp(e.target.value)}
                         className="w-full px-4 py-3.5 text-center tracking-[0.4em] font-mono text-xl border border-slate-300 rounded-2xl text-[#111827] focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 min-h-[52px]"
                       />
-                      {otpError && (
-                        <p className="text-xs text-red-500 mt-2 font-medium">{otpError}</p>
-                      )}
                     </div>
 
                     <div className="flex gap-3">
                       <button
                         type="button"
-                        onClick={() => setStep(1)}
+                        onClick={() => {
+                          setStepError('');
+                          setStep(1);
+                        }}
                         className="w-1/3 py-3.5 px-4 bg-slate-100 text-slate-700 font-medium text-xs rounded-full hover:bg-slate-200 transition-colors"
                       >
                         Change Number
                       </button>
                       <button
                         type="submit"
-                        className="w-2/3 py-3.5 px-6 bg-emerald-600 text-white font-semibold text-xs sm:text-sm rounded-full hover:bg-emerald-700 transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                        disabled={verifyingOtp}
+                        className="w-2/3 py-3.5 px-6 bg-emerald-600 text-white font-semibold text-xs sm:text-sm rounded-full hover:bg-emerald-700 transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                       >
-                        <span>Verify & Continue</span>
+                        <span>{verifyingOtp ? 'Verifying...' : 'Verify & Continue'}</span>
                         <CheckCircle2 className="w-4 h-4" />
                       </button>
                     </div>
@@ -411,7 +522,7 @@ export default function AppointmentPage() {
                       Choose Date & Available Slot
                     </h2>
                     <p className="text-xs sm:text-sm text-slate-500">
-                      Welcome, <span className="font-semibold text-[#111827]">{name}</span>! Select your treatment and slot.
+                      Welcome, <span className="font-semibold text-[#111827]">{name}</span>! Select your treatment and time.
                     </p>
                   </div>
 
@@ -425,14 +536,11 @@ export default function AppointmentPage() {
                       onChange={(e) => setSelectedService(e.target.value)}
                       className="w-full px-4 py-3.5 border border-slate-200 rounded-2xl text-xs sm:text-sm text-[#111827] focus:outline-none focus:border-[#587A9C] min-h-[48px] bg-white"
                     >
-                      <option value="3D scans and x-rays">3D scans and X-rays</option>
-                      <option value="Surgery">Surgery & Extractions</option>
-                      <option value="Dental cleaning">Dental Cleaning & Hygiene</option>
-                      <option value="Paediatric general practitioner">Paediatric General Practitioner</option>
-                      <option value="Teeth Braces">Teeth Braces (Orthodontics)</option>
-                      <option value="Aligners">Aligners (Invisible Braces)</option>
-                      <option value="Dental Implant">Dental Implant</option>
-                      <option value="Root Canal Treatment">Root Canal Treatment</option>
+                      {serviceOptions.map((srv) => (
+                        <option key={srv} value={srv}>
+                          {srv}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
@@ -459,7 +567,9 @@ export default function AppointmentPage() {
                                 : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                             }`}
                           >
-                            <span className="text-[10px] uppercase font-semibold text-slate-400">{dayName}</span>
+                            <span className="text-[10px] uppercase font-semibold text-slate-400">
+                              {dayName}
+                            </span>
                             <span className="text-xs sm:text-sm font-semibold mt-0.5">{monthDay}</span>
                           </button>
                         );
@@ -473,9 +583,14 @@ export default function AppointmentPage() {
                       <label className="block text-xs font-semibold text-[#111827]">
                         Available Time Slots for {selectedDate} *
                       </label>
-                      <span className="text-[11px] text-slate-400">
-                        {availableSlots.length} active slots available
-                      </span>
+                      <button
+                        type="button"
+                        onClick={() => fetchSlots(selectedDate)}
+                        className="text-[11px] text-slate-500 hover:text-slate-900 flex items-center gap-1 cursor-pointer"
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                        <span>Refresh slots</span>
+                      </button>
                     </div>
 
                     {loadingSlots ? (
@@ -485,7 +600,9 @@ export default function AppointmentPage() {
                     ) : availableSlots.length === 0 ? (
                       <div className="py-8 text-center bg-slate-50 rounded-2xl border border-slate-200 text-xs text-slate-500 space-y-1">
                         <p>No active slots released for {selectedDate}.</p>
-                        <p className="text-[11px] text-slate-400">Please pick another date or check back later.</p>
+                        <p className="text-[11px] text-slate-400">
+                          Please pick another date or check back later.
+                        </p>
                       </div>
                     ) : (
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -504,15 +621,29 @@ export default function AppointmentPage() {
                                   ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed opacity-60'
                                   : isSelected
                                   ? 'bg-[#587A9C] text-white border-[#587A9C] shadow-md ring-2 ring-[#587A9C]/40'
-                                  : 'bg-white text-[#111827] border-slate-200 hover:border-slate-300 hover:shadow-xs'
+                                  : 'bg-white text-[#111827] border-slate-200 hover:border-slate-300 hover:shadow-xs cursor-pointer'
                               }`}
                             >
                               <div className="flex items-center justify-between w-full">
-                                <span className="text-xs sm:text-sm font-semibold">{slot.time_slot}</span>
-                                <Clock className={`w-3.5 h-3.5 ${isSelected ? 'text-white' : 'text-slate-400'}`} />
+                                <span className="text-xs sm:text-sm font-semibold">
+                                  {slot.time_slot}
+                                </span>
+                                <Clock
+                                  className={`w-3.5 h-3.5 ${
+                                    isSelected ? 'text-white' : 'text-slate-400'
+                                  }`}
+                                />
                               </div>
 
-                              <span className={`text-[10px] font-medium mt-2 ${isSelected ? 'text-white/90' : isFull ? 'text-red-400' : 'text-emerald-600'}`}>
+                              <span
+                                className={`text-[10px] font-medium mt-2 ${
+                                  isSelected
+                                    ? 'text-white/90'
+                                    : isFull
+                                    ? 'text-red-400'
+                                    : 'text-emerald-600'
+                                }`}
+                              >
                                 {isFull ? 'Slot Booked' : 'Available'}
                               </span>
                             </button>
@@ -526,7 +657,10 @@ export default function AppointmentPage() {
                   <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
                     <button
                       type="button"
-                      onClick={() => setStep(2)}
+                      onClick={() => {
+                        setStepError('');
+                        setStep(2);
+                      }}
                       className="px-5 py-3 text-slate-600 hover:text-[#111827] text-xs font-semibold"
                     >
                       ← Back to Verification
@@ -534,15 +668,14 @@ export default function AppointmentPage() {
 
                     <button
                       type="button"
-                      disabled={!selectedSlot || isSubmitting}
+                      disabled={!selectedSlot || isSubmitting || (selectedSlot && selectedSlot.booked_count >= selectedSlot.max_capacity)}
                       onClick={handleCompleteBooking}
                       className="py-3.5 px-8 bg-[#141C28] text-white font-semibold text-xs sm:text-sm rounded-full hover:bg-[#1E293B] transition-all shadow-lg disabled:opacity-50 flex items-center gap-2 cursor-pointer"
                     >
-                      {isSubmitting ? 'Confirming...' : 'Confirm Appointment'}
+                      {isSubmitting ? 'Confirming with Database...' : 'Confirm Appointment'}
                       <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                     </button>
                   </div>
-
                 </motion.div>
               )}
 
@@ -572,7 +705,9 @@ export default function AppointmentPage() {
                   <div className="bg-[#F7F8FA] p-6 rounded-3xl border border-slate-200 text-left space-y-3.5 text-xs text-[#111827]">
                     <div className="flex justify-between items-center pb-3 border-b border-slate-200">
                       <span className="text-slate-400">Appointment ID</span>
-                      <span className="font-mono font-bold text-[#141C28]">{bookingDetails.id}</span>
+                      <span className="font-mono font-bold text-[#141C28]">
+                        {bookingDetails.id}
+                      </span>
                     </div>
 
                     <div className="flex justify-between">
@@ -592,7 +727,9 @@ export default function AppointmentPage() {
 
                     <div className="flex justify-between">
                       <span className="text-slate-500">Date & Slot:</span>
-                      <span className="font-semibold">{bookingDetails.date} at {bookingDetails.timeSlot}</span>
+                      <span className="font-semibold">
+                        {bookingDetails.date} at {bookingDetails.timeSlot}
+                      </span>
                     </div>
                   </div>
 
@@ -600,8 +737,11 @@ export default function AppointmentPage() {
                   <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center gap-3 text-left">
                     <MessageSquare className="w-6 h-6 text-emerald-600 shrink-0" />
                     <div className="text-xs text-emerald-900">
-                      <p className="font-semibold">WhatsApp Ticket Sent!</p>
-                      <p className="text-[11px] text-emerald-700">A detailed confirmation ticket has been dispatched via Meta Cloud API to {bookingDetails.whatsapp}.</p>
+                      <p className="font-semibold">WhatsApp Ticket Dispatched!</p>
+                      <p className="text-[11px] text-emerald-700">
+                        A detailed confirmation ticket has been dispatched via Meta Cloud API to{' '}
+                        {bookingDetails.whatsapp}.
+                      </p>
                     </div>
                   </div>
 
@@ -615,14 +755,20 @@ export default function AppointmentPage() {
                   </div>
                 </motion.div>
               )}
-
             </AnimatePresence>
           </div>
-
         </div>
       </section>
 
       <Footer />
     </main>
+  );
+}
+
+export default function AppointmentPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#F7F8FA] flex items-center justify-center text-xs text-slate-400">Loading appointment booking...</div>}>
+      <AppointmentContent />
+    </Suspense>
   );
 }

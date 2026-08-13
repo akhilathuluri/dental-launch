@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { sendWhatsAppMessage } from '@/lib/whatsapp';
+import { sendWhatsAppMessage, sanitizePhoneNumber } from '@/lib/whatsapp';
 
 export async function POST(request: Request) {
   try {
@@ -12,12 +12,14 @@ export async function POST(request: Request) {
       );
     }
 
-    const messageText = `🎉 *Dentty Dental Clinic — Booking Confirmed!*\n\nDear *${patient_name}*,\n\nYour appointment has been successfully scheduled.\n\n📌 *Booking Details:*\n- *Ref ID:* ${
+    const sanitizedPhone = sanitizePhoneNumber(whatsapp_number);
+
+    const messageText = `🎉 *Gahan Dental Clinic — Booking Confirmed!*\n\nDear *${patient_name}*,\n\nYour dental appointment has been successfully scheduled.\n\n📌 *Booking Details:*\n- *Ref ID:* ${
       appointment_id || 'CONFIRMED'
-    }\n- *Treatment:* ${service}\n- *Date:* ${date}\n- *Time Slot:* ${time_slot}\n\n📍 *Clinic Address:*\nDentty Dental Care Center, Main Boulevard\n*Contact:* +1 (800) 456-7890\n\nThank you for choosing Dentty Clinic! We look forward to giving you a confident, healthy smile.`;
+    }\n- *Treatment:* ${service}\n- *Date:* ${date}\n- *Time Slot:* ${time_slot}\n\n📍 *Clinic Address:*\nGahan Dental Care Center, Main Boulevard\n*Contact:* +1 (800) 456-7890\n\nThank you for choosing Gahan Dental! We look forward to welcoming you.`;
 
     // Send real WhatsApp confirmation ticket via Meta Cloud API
-    const whatsappResult = await sendWhatsAppMessage(whatsapp_number, messageText);
+    const whatsappResult = await sendWhatsAppMessage(sanitizedPhone, messageText);
 
     return NextResponse.json({
       success: true,

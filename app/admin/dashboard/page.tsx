@@ -184,12 +184,25 @@ export default function AdminDashboardPage() {
     fetchData();
   };
 
-  // Update Appointment Status
+  // Update Appointment Status (with automatic capacity restoration if cancelled)
   const handleUpdateApptStatus = async (apptId: string, newStatus: 'confirmed' | 'completed' | 'cancelled') => {
-    await supabase
-      .from('appointments')
-      .update({ status: newStatus })
-      .eq('id', apptId);
+    if (newStatus === 'cancelled') {
+      // Call Postgres cancellation function to restore slot capacity
+      const { error } = await supabase.rpc('cancel_appointment_slot', {
+        p_appointment_id: apptId,
+      });
+
+      if (error) {
+        console.error('Error in cancel_appointment_slot RPC:', error);
+        // Fallback update
+        await supabase.from('appointments').update({ status: 'cancelled' }).eq('id', apptId);
+      }
+    } else {
+      await supabase
+        .from('appointments')
+        .update({ status: newStatus })
+        .eq('id', apptId);
+    }
 
     fetchData();
   };
@@ -256,13 +269,12 @@ export default function AdminDashboardPage() {
 
   return (
     <main className="min-h-screen bg-[#F7F8FA] text-[#111827] flex flex-col justify-between">
-      
       {/* Admin Navbar */}
       <header className="sticky top-0 z-50 bg-[#141C28] text-white py-4 px-4 sm:px-8 border-b border-white/10 shadow-md">
         <div className="max-w-[1400px] mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link href="/" className="px-4 py-1.5 bg-white text-[#111827] font-semibold text-sm rounded-full">
-              Dentty
+              Gahan Dental
             </Link>
             <span className="text-xs text-slate-400 font-mono hidden sm:inline">
               Admin Portal
@@ -278,7 +290,7 @@ export default function AdminDashboardPage() {
             >
               <RefreshCw className="w-4 h-4" />
             </button>
-            
+
             <button
               type="button"
               onClick={handleSignOut}
@@ -293,28 +305,35 @@ export default function AdminDashboardPage() {
 
       {/* Main Container */}
       <section className="w-full py-8 px-4 sm:px-6 lg:px-8 max-w-[1400px] mx-auto flex-1">
-        
         {/* Top Summary Stats Bar */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-1">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Total Bookings</span>
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+              Total Bookings
+            </span>
             <p className="text-3xl font-light text-[#111827]">{appointments.length}</p>
           </div>
 
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-1">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Confirmed Patients</span>
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+              Confirmed Patients
+            </span>
             <p className="text-3xl font-light text-emerald-600">
               {appointments.filter((a) => a.status === 'confirmed').length}
             </p>
           </div>
 
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-1">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Slots Released Today</span>
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+              Slots Released Today
+            </span>
             <p className="text-3xl font-light text-[#587A9C]">{slots.length}</p>
           </div>
 
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-1">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Completed Treatments</span>
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+              Completed Treatments
+            </span>
             <p className="text-3xl font-light text-slate-700">
               {appointments.filter((a) => a.status === 'completed').length}
             </p>
@@ -351,7 +370,6 @@ export default function AdminDashboardPage() {
         {/* TAB 1: WHO BOOKED THE SLOTS (APPOINTMENTS DIRECTORY) */}
         {activeTab === 'bookings' && (
           <div className="space-y-6">
-            
             {/* Search & Filter Header */}
             <div className="flex flex-col sm:flex-row justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
               <div className="relative flex-1">
@@ -455,14 +473,12 @@ export default function AdminDashboardPage() {
                 </table>
               </div>
             </div>
-
           </div>
         )}
 
         {/* TAB 2: SLOT RELEASING & MANAGEMENT */}
         {activeTab === 'slots' && (
           <div className="space-y-6">
-            
             {/* Slot Release Form */}
             <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -541,7 +557,9 @@ export default function AdminDashboardPage() {
                       <div>
                         <div className="flex items-center gap-2">
                           <Clock className="w-4 h-4 text-[#587A9C]" />
-                          <span className="font-semibold text-sm text-[#111827]">{slot.time_slot}</span>
+                          <span className="font-semibold text-sm text-[#111827]">
+                            {slot.time_slot}
+                          </span>
                         </div>
                         <span className="text-[11px] text-slate-500 mt-1 block">
                           Booked: {slot.booked_count} / {slot.max_capacity}
@@ -553,7 +571,9 @@ export default function AdminDashboardPage() {
                           type="button"
                           onClick={() => handleToggleSlotActive(slot.id, slot.is_active)}
                           className={`px-3 py-1 rounded-full text-[10px] font-semibold uppercase cursor-pointer ${
-                            slot.is_active ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'
+                            slot.is_active
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-slate-200 text-slate-600'
                           }`}
                         >
                           {slot.is_active ? 'Active' : 'Disabled'}
@@ -573,14 +593,12 @@ export default function AdminDashboardPage() {
                 </div>
               )}
             </div>
-
           </div>
         )}
-
       </section>
 
       <footer className="w-full py-6 text-center text-xs text-slate-500 border-t border-slate-200 bg-white">
-        Dentty Dental Clinic Admin Dashboard • Supabase Auth Guarded
+        Gahan Dental Clinic Admin Dashboard • Supabase Auth Guarded
       </footer>
     </main>
   );

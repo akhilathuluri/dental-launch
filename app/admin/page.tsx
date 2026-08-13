@@ -106,7 +106,7 @@ export default function AdminLoginPage() {
                   type="email"
                   id="adminEmail"
                   required
-                  placeholder="admin@dentty.com"
+                  placeholder="admin@gahandental.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full px-4 py-3.5 pl-11 bg-white/5 border border-white/15 rounded-xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#587A9C] focus:ring-1 focus:ring-[#587A9C] min-h-[46px]"
@@ -150,7 +150,7 @@ export default function AdminLoginPage() {
       </div>
 
       <div className="text-center text-xs text-slate-500 py-4">
-        © {new Date().getFullYear()} Dentty Dental Clinic Admin Management
+        © {new Date().getFullYear()} Gahan Dental Clinic Admin Management
       </div>
     </main>
   );
