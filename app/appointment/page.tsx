@@ -25,7 +25,7 @@ import { supabase } from '@/lib/supabase';
 import { Footer } from '@/components/layout/Footer';
 import { allSpecializedServices, primaryServices } from '@/data/services';
 import { generateAppointmentPDF } from '@/lib/pdfReceipt';
-import { getClinicDayInfo } from '@/lib/clinicSchedule';
+import { getClinicDayInfo, ScheduleOverrideItem, sortSlotsChronologically } from '@/lib/clinicSchedule';
 
 interface Slot {
   id: string;
@@ -50,12 +50,13 @@ function AppointmentContent() {
   const [verifyingOtp, setVerifyingOtp] = useState(false);
   const [stepError, setStepError] = useState('');
 
-  // Service, Date & Slot State
+  // Service, Date, Slot & Overrides State
   const [selectedService, setSelectedService] = useState('3D scans and x-rays');
   const [availableSlots, setAvailableSlots] = useState<Slot[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
   const [loadingSlots, setLoadingSlots] = useState(false);
+  const [overrides, setOverrides] = useState<Record<string, ScheduleOverrideItem>>({});
 
   // Booking Submission State
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -85,6 +86,21 @@ function AppointmentContent() {
     }
   }, [initialServiceParam]);
 
+  // Load active schedule overrides from database
+  useEffect(() => {
+    async function loadOverrides() {
+      const { data } = await supabase.from('clinic_schedule_overrides').select('*');
+      if (data) {
+        const map: Record<string, ScheduleOverrideItem> = {};
+        data.forEach((item: any) => {
+          map[item.date] = item;
+        });
+        setOverrides(map);
+      }
+    }
+    loadOverrides();
+  }, []);
+
   useEffect(() => {
     const dates: string[] = [];
     const today = new Date();
@@ -96,10 +112,10 @@ function AppointmentContent() {
     setDateOptions(dates);
     if (dates.length > 0) {
       // Pick first non-holiday date by default if today is a holiday
-      const firstOpenDate = dates.find((d) => !getClinicDayInfo(d).isHoliday) || dates[0];
+      const firstOpenDate = dates.find((d) => !getClinicDayInfo(d, overrides).isHoliday) || dates[0];
       setSelectedDate(firstOpenDate);
     }
-  }, []);
+  }, [overrides]);
 
   // Fetch Available Slots from Supabase
   const fetchSlots = async (dateToFetch: string) => {
@@ -112,17 +128,17 @@ function AppointmentContent() {
         .from('appointment_slots')
         .select('*')
         .eq('date', dateToFetch)
-        .eq('is_active', true)
-        .order('time_slot', { ascending: true });
+        .eq('is_active', true);
 
       if (error) {
         console.error('Error fetching slots:', error);
       }
 
       if (data) {
-        setAvailableSlots(data as Slot[]);
+        const sortedSlots = sortSlotsChronologically(data as Slot[]);
+        setAvailableSlots(sortedSlots);
         // Auto-select first available slot if previous wasn't selected or not for this date
-        const openSlot = data.find((s) => s.booked_count < s.max_capacity);
+        const openSlot = sortedSlots.find((s) => s.booked_count < s.max_capacity);
         if (openSlot) {
           setSelectedSlot(openSlot);
         } else {
@@ -130,7 +146,7 @@ function AppointmentContent() {
         }
       }
     } catch (err) {
-      console.error(err);
+      console.error('Error in fetchSlots:', err);
     } finally {
       setLoadingSlots(false);
     }
@@ -581,7 +597,7 @@ function AppointmentContent() {
                         const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
                         const monthDay = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                         const isSelected = selectedDate === dateStr;
-                        const dayInfo = getClinicDayInfo(dateStr);
+                        const dayInfo = getClinicDayInfo(dateStr, overrides);
 
                         return (
                           <button
@@ -604,6 +620,10 @@ function AppointmentContent() {
                             {dayInfo.isHoliday ? (
                               <span className="text-[9px] font-semibold text-amber-700 bg-amber-100/90 px-1.5 py-0.5 rounded-md mt-1">
                                 Holiday
+                              </span>
+                            ) : dayInfo.isOverride && dayInfo.overrideStatus === 'working_day' ? (
+                              <span className="text-[9px] font-semibold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded-md mt-1">
+                                Special Open
                               </span>
                             ) : dayInfo.badgeLabel?.includes('3rd Tue') ? (
                               <span className="text-[9px] font-semibold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded-md mt-1">
@@ -632,14 +652,14 @@ function AppointmentContent() {
                       </button>
                     </div>
 
-                    {getClinicDayInfo(selectedDate).isHoliday ? (
+                    {getClinicDayInfo(selectedDate, overrides).isHoliday ? (
                       <div className="py-8 px-6 text-center bg-amber-50 rounded-2xl border border-amber-200 text-xs text-amber-900 space-y-2">
                         <p className="font-semibold text-sm">🏖️ Clinic Closed on This Date</p>
                         <p className="text-amber-800">
-                          {getClinicDayInfo(selectedDate).reason}. Clinic is closed on every Tuesday (except 3rd Tuesday) and 2nd Sunday of each month.
+                          {getClinicDayInfo(selectedDate, overrides).reason}.
                         </p>
                         <p className="text-[11px] text-amber-700 font-medium pt-1">
-                          Please choose another date above to view available 30-minute time slots (10:00 AM – 07:30 PM).
+                          Please choose another open date above to view available 30-minute time slots (10:00 AM – 07:30 PM).
                         </p>
                       </div>
                     ) : loadingSlots ? (

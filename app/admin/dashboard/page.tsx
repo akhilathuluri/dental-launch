@@ -30,7 +30,13 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { primaryServices, allSpecializedServices } from '@/data/services';
-import { STANDARD_TIME_SLOTS, getClinicDayInfo } from '@/lib/clinicSchedule';
+import {
+  STANDARD_TIME_SLOTS,
+  getClinicDayInfo,
+  ScheduleOverrideItem,
+  ClinicDayInfo,
+  sortSlotsChronologically
+} from '@/lib/clinicSchedule';
 
 interface SlotItem {
   id: string;
@@ -66,6 +72,8 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [slots, setSlots] = useState<SlotItem[]>([]);
   const [appointments, setAppointments] = useState<AppointmentItem[]>([]);
+  const [overrides, setOverrides] = useState<Record<string, ScheduleOverrideItem>>({});
+  const [overrideUpdating, setOverrideUpdating] = useState(false);
 
   // Slot Management Form State
   const [targetDate, setTargetDate] = useState<string>(
@@ -137,16 +145,28 @@ export default function AdminDashboardPage() {
   async function fetchData() {
     setLoading(true);
 
-    // Fetch Slots for targetDate
+    // 1. Fetch Schedule Overrides
+    const { data: overrideData } = await supabase
+      .from('clinic_schedule_overrides')
+      .select('*');
+
+    if (overrideData) {
+      const map: Record<string, ScheduleOverrideItem> = {};
+      overrideData.forEach((item: any) => {
+        map[item.date] = item;
+      });
+      setOverrides(map);
+    }
+
+    // 2. Fetch Slots for targetDate
     const { data: slotsData } = await supabase
       .from('appointment_slots')
       .select('*')
-      .eq('date', targetDate)
-      .order('time_slot', { ascending: true });
+      .eq('date', targetDate);
 
-    if (slotsData) setSlots(slotsData as SlotItem[]);
+    if (slotsData) setSlots(sortSlotsChronologically(slotsData as SlotItem[]));
 
-    // Fetch All Appointments
+    // 3. Fetch All Appointments
     const { data: apptsData } = await supabase
       .from('appointments')
       .select('*')
@@ -156,6 +176,81 @@ export default function AdminDashboardPage() {
 
     setLoading(false);
   }
+
+  // Declare Date as Holiday (Close Clinic & Deactivate Slots)
+  const handleDeclareHoliday = async (dateStr: string) => {
+    setOverrideUpdating(true);
+    try {
+      await supabase.from('clinic_schedule_overrides').upsert(
+        {
+          date: dateStr,
+          status: 'holiday',
+          reason: 'Admin Declared Holiday (Clinic Closed)',
+        },
+        { onConflict: 'date' }
+      );
+
+      // Deactivate all unbooked slots on this date so patients cannot book
+      await supabase
+        .from('appointment_slots')
+        .update({ is_active: false })
+        .eq('date', dateStr);
+
+      await fetchData();
+    } catch (err) {
+      console.error('Error declaring holiday:', err);
+    } finally {
+      setOverrideUpdating(false);
+    }
+  };
+
+  // Declare Date as Working Day (Open Clinic & Bulk Release All 20 Slots)
+  const handleDeclareWorkingDay = async (dateStr: string) => {
+    setOverrideUpdating(true);
+    try {
+      await supabase.from('clinic_schedule_overrides').upsert(
+        {
+          date: dateStr,
+          status: 'working_day',
+          reason: 'Admin Declared Special Working Day (Open)',
+        },
+        { onConflict: 'date' }
+      );
+
+      // Bulk release all 20 standard slots
+      const bulkPayload = STANDARD_TIME_SLOTS.map((time_slot) => ({
+        date: dateStr,
+        time_slot,
+        max_capacity: 1,
+        is_active: true,
+      }));
+
+      await supabase.from('appointment_slots').upsert(bulkPayload, { onConflict: 'date,time_slot' });
+
+      await fetchData();
+    } catch (err) {
+      console.error('Error declaring working day:', err);
+    } finally {
+      setOverrideUpdating(false);
+    }
+  };
+
+  // Reset Date to Default Clinic Schedule
+  const handleResetToDefaultSchedule = async (dateStr: string) => {
+    setOverrideUpdating(true);
+    try {
+      await supabase
+        .from('clinic_schedule_overrides')
+        .delete()
+        .eq('date', dateStr);
+
+      await fetchData();
+    } catch (err) {
+      console.error('Error resetting schedule:', err);
+    } finally {
+      setOverrideUpdating(false);
+    }
+  };
 
   // Release Single Slot
   const handleReleaseSingleSlot = async (e: React.FormEvent) => {
@@ -599,50 +694,101 @@ export default function AdminDashboardPage() {
         {/* TAB 2: SLOT RELEASING & MANAGEMENT */}
         {activeTab === 'slots' && (
           <div className="space-y-6">
-            {/* Slot Release Form */}
-            <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+            {/* Slot Release Form & Schedule Override Controller */}
+            <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="text-lg font-semibold text-[#111827] tracking-tight">
-                      Slot Releasing Panel
+                      Slot Releasing &amp; Schedule Panel
                     </h3>
-                    {getClinicDayInfo(targetDate).isHoliday ? (
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 border border-amber-200">
-                        🏖️ {getClinicDayInfo(targetDate).badgeLabel} (Closed)
+                    {getClinicDayInfo(targetDate, overrides).isHoliday ? (
+                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1.5">
+                        <span>🏖️ Clinic Closed</span>
+                        {getClinicDayInfo(targetDate, overrides).isOverride && (
+                          <span className="text-[10px] bg-amber-200/80 px-1.5 py-0.5 rounded text-amber-950 font-normal">Custom Override</span>
+                        )}
                       </span>
                     ) : (
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                        ✅ Open (10:00 AM – 07:30 PM)
+                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-900 border border-emerald-300 flex items-center gap-1.5">
+                        <span>✅ Clinic Open (10:00 – 19:30)</span>
+                        {getClinicDayInfo(targetDate, overrides).isOverride && (
+                          <span className="text-[10px] bg-emerald-200/80 px-1.5 py-0.5 rounded text-emerald-950 font-normal">Special Working Day</span>
+                        )}
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Operating schedule: 10:00 AM – 07:30 PM in 30-minute intervals (Closed on Tuesdays except 3rd Tuesday &amp; 2nd Sunday of month).
+                  <p className="text-xs text-slate-500 mt-1">
+                    Standard: 10:00 AM – 07:30 PM (Closed on Tuesdays except 3rd Tue &amp; 2nd Sun). Use options below to declare holidays or open clinic on holidays.
                   </p>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={handleBulkReleaseSlots}
-                  disabled={releasing}
-                  className="px-5 py-2.5 bg-[#587A9C] text-white text-xs font-semibold rounded-full hover:bg-[#4C6B8A] transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Sparkles className="w-4 h-4" />
-                  <span>Release All 20 Slots (10:00 AM – 07:30 PM) for {targetDate}</span>
-                </button>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={handleBulkReleaseSlots}
+                    disabled={releasing || overrideUpdating}
+                    className="px-5 py-2.5 bg-[#587A9C] text-white text-xs font-semibold rounded-full hover:bg-[#4C6B8A] transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    <span>Release All 20 Slots (10:00 AM – 07:30 PM)</span>
+                  </button>
+                </div>
               </div>
 
-              {getClinicDayInfo(targetDate).isHoliday && (
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-900 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-                  <span>
-                    <strong>Clinic Holiday:</strong> {getClinicDayInfo(targetDate).reason}. You can still release slots if special clinic hours are needed.
+              {/* Dynamic Holiday / Working Day Override Control Strip */}
+              <div className="p-4 rounded-2xl border bg-slate-50 border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="space-y-0.5">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                    Schedule Status for {targetDate}
                   </span>
+                  <p className="text-xs font-medium text-[#111827]">
+                    {getClinicDayInfo(targetDate, overrides).reason}
+                  </p>
                 </div>
-              )}
 
-              <form onSubmit={handleReleaseSingleSlot} className="flex flex-col sm:flex-row gap-3 pt-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* If Working Day -> Give Option to Declare as Holiday (Close Clinic) */}
+                  {!getClinicDayInfo(targetDate, overrides).isHoliday ? (
+                    <button
+                      type="button"
+                      disabled={overrideUpdating}
+                      onClick={() => handleDeclareHoliday(targetDate)}
+                      className="px-4 py-2 bg-amber-500 text-white text-xs font-semibold rounded-full hover:bg-amber-600 transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      title="Declare this date as a holiday and disable all slots"
+                    >
+                      <span>🏖️ Declare Holiday (Close Clinic)</span>
+                    </button>
+                  ) : (
+                    /* If Holiday -> Give Option to Convert into Working Day (Open Clinic & Release Slots) */
+                    <button
+                      type="button"
+                      disabled={overrideUpdating}
+                      onClick={() => handleDeclareWorkingDay(targetDate)}
+                      className="px-4 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-full hover:bg-emerald-700 transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      title="Open clinic on this holiday and release 20 standard slots"
+                    >
+                      <span>⚡ Open Clinic (Declare Working Day)</span>
+                    </button>
+                  )}
+
+                  {/* Reset Override Button (if date has an active custom override) */}
+                  {getClinicDayInfo(targetDate, overrides).isOverride && (
+                    <button
+                      type="button"
+                      disabled={overrideUpdating}
+                      onClick={() => handleResetToDefaultSchedule(targetDate)}
+                      className="px-3 py-2 bg-white text-slate-600 border border-slate-300 text-xs font-semibold rounded-full hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50"
+                      title="Remove custom override and revert to default monthly rules"
+                    >
+                      <span>🔄 Reset to Default</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Single Slot Manual Releasing Form */}
+              <form onSubmit={handleReleaseSingleSlot} className="flex flex-col sm:flex-row gap-3 pt-1">
                 <input
                   type="date"
                   value={targetDate}

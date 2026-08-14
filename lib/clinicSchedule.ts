@@ -2,9 +2,10 @@
  * Clinic Schedule & Holiday Management
  *
  * Rules:
- * 1. Every Tuesday is a holiday EXCEPT the 3rd Tuesday of that calendar month.
- * 2. Every 2nd Sunday in a calendar month is a holiday.
+ * 1. Default: Every Tuesday is a holiday EXCEPT the 3rd Tuesday of that calendar month.
+ * 2. Default: Every 2nd Sunday in a calendar month is a holiday.
  * 3. Operating hours: 10:00 AM to 07:30 PM in 30-minute intervals (20 standard slots).
+ * 4. Dynamic Admin Overrides: An admin can declare any date as 'holiday' (clinic closed) or 'working_day' (clinic open).
  */
 
 export const STANDARD_TIME_SLOTS: string[] = [
@@ -35,6 +36,47 @@ export interface ClinicDayInfo {
   reason?: string;
   badgeLabel?: string;
   operatingHours: string;
+  isOverride?: boolean;
+  overrideStatus?: 'holiday' | 'working_day';
+}
+
+export interface ScheduleOverrideItem {
+  id?: string;
+  date: string;
+  status: 'holiday' | 'working_day';
+  reason?: string | null;
+}
+
+/**
+ * Converts standard 12-hour formatted time string (e.g. "10:00 AM", "01:30 PM", "12:00 PM")
+ * into total minutes from midnight for accurate chronological sorting.
+ */
+export function parseTimeToMinutes(timeStr: string): number {
+  if (!timeStr) return 0;
+  const match = timeStr.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!match) return 0;
+  let hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  const period = match[3].toUpperCase();
+
+  if (period === 'PM' && hours !== 12) {
+    hours += 12;
+  } else if (period === 'AM' && hours === 12) {
+    hours = 0;
+  }
+
+  return hours * 60 + minutes;
+}
+
+/**
+ * Sorts array of objects containing `time_slot` chronologically (10:00 AM -> 10:30 AM ... -> 07:30 PM).
+ */
+export function sortSlotsChronologically<T extends { time_slot: string }>(slots: T[]): T[] {
+  return [...slots].sort((a, b) => {
+    const timeA = parseTimeToMinutes(a.time_slot);
+    const timeB = parseTimeToMinutes(b.time_slot);
+    return timeA - timeB;
+  });
 }
 
 /**
@@ -57,15 +99,52 @@ export function getWeekdayOccurrenceInMonth(date: Date): number {
 }
 
 /**
- * Checks if a specific date is a clinic holiday based on business rules.
+ * Checks if a specific date is a clinic holiday based on custom overrides or default business rules.
  */
-export function getClinicDayInfo(dateInput: Date | string): ClinicDayInfo {
-  const date = typeof dateInput === 'string'
+export function getClinicDayInfo(
+  dateInput: Date | string,
+  overridesMap?: Record<string, ScheduleOverrideItem | 'holiday' | 'working_day'>
+): ClinicDayInfo {
+  const dateObj = typeof dateInput === 'string'
     ? new Date(dateInput.includes('T') ? dateInput : `${dateInput}T00:00:00`)
     : dateInput;
 
-  const dayOfWeek = date.getDay(); // 0 = Sunday, 2 = Tuesday
-  const occurrence = getWeekdayOccurrenceInMonth(date);
+  const dateKey = typeof dateInput === 'string'
+    ? dateInput.split('T')[0]
+    : dateObj.toISOString().split('T')[0];
+
+  // 1. Check if an Admin Custom Override exists for this date
+  if (overridesMap && overridesMap[dateKey]) {
+    const override = overridesMap[dateKey];
+    const status = typeof override === 'string' ? override : override.status;
+    const reason = typeof override === 'object' && override?.reason ? override.reason : undefined;
+
+    if (status === 'holiday') {
+      return {
+        isHoliday: true,
+        reason: reason || 'Admin Declared Holiday (Clinic Closed)',
+        badgeLabel: 'Clinic Closed',
+        operatingHours: 'Closed',
+        isOverride: true,
+        overrideStatus: 'holiday',
+      };
+    }
+
+    if (status === 'working_day') {
+      return {
+        isHoliday: false,
+        reason: reason || 'Admin Declared Special Working Day (Open)',
+        badgeLabel: 'Special Open',
+        operatingHours: '10:00 AM – 07:30 PM',
+        isOverride: true,
+        overrideStatus: 'working_day',
+      };
+    }
+  }
+
+  // 2. Default Rules
+  const dayOfWeek = dateObj.getDay(); // 0 = Sunday, 2 = Tuesday
+  const occurrence = getWeekdayOccurrenceInMonth(dateObj);
 
   // Rule 1: Every Tuesday is a holiday EXCEPT the 3rd Tuesday of that month
   if (dayOfWeek === 2) {
@@ -103,7 +182,7 @@ export function getClinicDayInfo(dateInput: Date | string): ClinicDayInfo {
     };
   }
 
-  // All other weekdays (Mon, Wed, Thu, Fri, Sat) are open
+  // All other weekdays (Mon, Wed, Thu, Fri, Sat) are open by default
   return {
     isHoliday: false,
     badgeLabel: 'Open',

@@ -5,13 +5,28 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { InfoCard } from '@/components/ui/InfoCard';
 import { Header } from '@/components/layout/Header';
-
-import { getClinicDayInfo } from '@/lib/clinicSchedule';
+import { supabase } from '@/lib/supabase';
+import { getClinicDayInfo, ScheduleOverrideItem } from '@/lib/clinicSchedule';
 
 export const Hero: React.FC = () => {
   const [currentDay, setCurrentDay] = useState('');
   const [currentTime, setCurrentTime] = useState('');
   const [todayStatus, setTodayStatus] = useState('Clinic Open');
+  const [overrides, setOverrides] = useState<Record<string, ScheduleOverrideItem>>({});
+
+  useEffect(() => {
+    async function loadOverrides() {
+      const { data } = await supabase.from('clinic_schedule_overrides').select('*');
+      if (data) {
+        const map: Record<string, ScheduleOverrideItem> = {};
+        data.forEach((item: any) => {
+          map[item.date] = item;
+        });
+        setOverrides(map);
+      }
+    }
+    loadOverrides();
+  }, []);
 
   useEffect(() => {
     const updateDateTime = () => {
@@ -25,7 +40,7 @@ export const Hero: React.FC = () => {
         })
         .toLowerCase();
 
-      const dayInfo = getClinicDayInfo(now);
+      const dayInfo = getClinicDayInfo(now, overrides);
 
       setCurrentDay(`Today is ${dayName}`);
       setCurrentTime(formattedTime);
@@ -35,7 +50,7 @@ export const Hero: React.FC = () => {
     updateDateTime();
     const interval = setInterval(updateDateTime, 1000); // Live real-time update every second
     return () => clearInterval(interval);
-  }, []);
+  }, [overrides]);
 
   return (
     <section id="home" className="w-full pt-0 sm:pt-2 pb-6 px-0 sm:px-4 lg:px-6">
