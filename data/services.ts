@@ -20,7 +20,7 @@ export const primaryServices: PrimaryServiceCard[] = [
   {
     id: "xray",
     number: "[1]",
-    title: "3d scans and x-rays",
+    title: "x-rays",
     image: "/images/service-xray.jpg",
     description: "High-precision digital 3D tomography and low-radiation panoramic scans for exact treatment planning.",
   },

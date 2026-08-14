@@ -54,16 +54,16 @@ export const Hero: React.FC = () => {
 
   return (
     <section id="home" className="w-full pt-0 sm:pt-2 pb-6 px-0 sm:px-4 lg:px-6">
-      <div className="w-full max-w-[1440px] mx-auto bg-[#587A9C] text-white rounded-b-3xl sm:rounded-[36px] lg:rounded-[44px] overflow-hidden shadow-xl relative">
-        
-        {/* Header embedded inside hero blue container */}
+      <div className="w-full max-w-[1440px] mx-auto bg-[#165634] bg-gradient-to-br from-[#1A623D] via-[#165634] to-[#114227] text-white rounded-b-3xl sm:rounded-[36px] lg:rounded-[44px] overflow-hidden shadow-2xl relative">
+
+        {/* Header embedded inside hero container */}
         <Header />
 
         <div className="px-4 sm:px-8 lg:px-12 pt-6 sm:pt-10 pb-6 sm:pb-10">
-          
+
           {/* Top Row: Headline & Practice Hours */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-12 items-start mb-6 sm:mb-10">
-            
+
             {/* Headline */}
             <motion.div
               initial={{ opacity: 0, y: 25 }}
@@ -72,8 +72,8 @@ export const Hero: React.FC = () => {
               className="lg:col-span-8"
             >
               <h1 className="text-[3rem] sm:text-7xl lg:text-[6.5rem] font-light leading-[0.92] tracking-tight text-white font-sans max-w-3xl">
-                Your smile<br />
-                <span className="font-normal">comes first</span>
+                Smile with<br />
+                <span className="font-normal">Confidence</span>
               </h1>
             </motion.div>
 
@@ -87,19 +87,18 @@ export const Hero: React.FC = () => {
               <div className="space-y-1 text-left lg:text-right">
                 <p className="font-semibold text-white text-xs mb-1 uppercase tracking-wider">Practice Hours</p>
                 <p className="text-white/90 text-xs sm:text-sm font-medium">Daily: 10:00 AM – 07:30 PM</p>
-                <p className="text-white/70 text-[11px]">30-minute interval slots</p>
                 <p className="text-amber-200 text-[11px] font-normal pt-1">
                   Closed: Tuesdays (except 3rd Tue) &amp; 2nd Sunday
                 </p>
               </div>
 
-              {/* Real-time Status Pill Badge with Device Time */}
+              {/* Real-time Status Pill Badge without live clock */}
               <div
                 suppressHydrationWarning
                 className="inline-flex items-center gap-2.5 px-4 py-2 bg-white/20 backdrop-blur-md border border-white/25 rounded-full text-xs font-normal text-white shadow-xs"
               >
+                <span className={`w-2 h-2 rounded-full ${todayStatus.startsWith('Closed') ? 'bg-amber-300' : 'bg-emerald-300 animate-pulse'}`} />
                 <span>{todayStatus}</span>
-                <span className="font-medium font-mono">{currentTime || '--:--'}</span>
               </div>
             </motion.div>
           </div>
@@ -111,70 +110,66 @@ export const Hero: React.FC = () => {
             transition={{ duration: 0.7, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
             className="relative w-full rounded-2xl sm:rounded-3xl lg:rounded-[36px] overflow-hidden bg-slate-200 aspect-[4/3] sm:aspect-[16/9] lg:aspect-[2.2/1] shadow-lg mb-4 sm:mb-0"
           >
-            {/* Natural smiling patient lifestyle photo */}
-            <Image
-              src="/images/hero-patient.jpg"
-              alt="Smiling patient at Gahan Dental clinic"
-              fill
-              priority
-              sizes="(max-width: 1200px) 100vw, 1400px"
-              className="object-cover object-[center_25%]"
-            />
+            {/* Mobile Screen Image (< sm) */}
+            <div className="block sm:hidden absolute inset-0">
+              <Image
+                src="/images/hero-patient-mobile.png"
+                alt="Smiling patient at Gahan Dental clinic"
+                fill
+                priority
+                unoptimized
+                className="object-cover object-center"
+              />
+            </div>
 
-            {/* Subtle bottom shadow gradient for contrast */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none z-10 hidden sm:block" />
+            {/* Larger Screens Image (sm+) */}
+            <div className="hidden sm:block absolute inset-0">
+              <Image
+                src="/images/hero-patient.png"
+                alt="Smiling patient at Gahan Dental clinic"
+                fill
+                priority
+                unoptimized
+                className="object-cover object-[center_25%]"
+              />
+            </div>
 
-            {/* DESKTOP OVERLAY CARDS (Visible on sm: and up) */}
-            <div className="hidden sm:block absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6 z-20">
-              <div className="grid grid-cols-3 gap-4">
+            {/* Subtle bottom shadow gradient for contrast on all screens */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none z-10" />
+
+            {/* FLOATING OVERLAY CARDS (Hovering inside the image on ALL screens: Mobile & Desktop) */}
+            <div className="absolute bottom-3 left-3 right-3 sm:bottom-6 sm:left-6 sm:right-6 z-20">
+              {/* Mobile: 100% full-width swipe snapping (Zero cut off edges) | Desktop: 3-column grid */}
+              <div className="flex sm:grid sm:grid-cols-3 gap-2.5 sm:gap-4 overflow-x-auto no-scrollbar snap-x snap-mandatory sm:overflow-visible pb-0.5 sm:pb-0">
                 <InfoCard
-                  title="Discount 5%"
-                  description="For therapeutic treatment when registering via the website"
+                  title="Special Discount 5%"
+                  description="Applicable on treatments when booking online via website"
                   href="#appointment"
+                  className="snap-center w-full min-w-full sm:min-w-0 shrink-0 sm:shrink"
                 />
                 <InfoCard
-                  title="Free consultation"
-                  description="For all types of dental services"
+                  title="Free Consultation"
+                  description="Initial oral examination & specialist dental checkup"
                   href="#appointment"
+                  className="snap-center w-full min-w-full sm:min-w-0 shrink-0 sm:shrink"
                 />
                 <InfoCard
-                  title="Installments 0%"
-                  description="We will examine, make a treatment plan, and name the exact cost."
+                  title="0% Interest EMI"
+                  description="Transparent treatment plans with flexible payment options"
                   href="#appointment"
+                  className="snap-center w-full min-w-full sm:min-w-0 shrink-0 sm:shrink"
                 />
+              </div>
+
+              {/* Mobile Swipe Indicators */}
+              <div className="flex sm:hidden justify-center items-center gap-1.5 mt-2">
+                <span className="w-5 h-1 rounded-full bg-white shadow-xs" />
+                <span className="w-1.5 h-1 rounded-full bg-white/40 shadow-xs" />
+                <span className="w-1.5 h-1 rounded-full bg-white/40 shadow-xs" />
               </div>
             </div>
 
           </motion.div>
-
-          {/* MOBILE HORIZONTAL SCROLL CARDS (Visible only on mobile < sm breakpoint) */}
-          <div className="block sm:hidden mt-3">
-            <div className="flex flex-nowrap overflow-x-auto no-scrollbar snap-x snap-mandatory gap-3 py-1 -mx-4 px-4">
-              <InfoCard
-                title="Discount 5%"
-                description="For therapeutic treatment when registering via the website"
-                href="#appointment"
-                className="snap-start min-w-[82vw] shrink-0"
-              />
-              <InfoCard
-                title="Free consultation"
-                description="For all types of dental services"
-                href="#appointment"
-                className="snap-start min-w-[82vw] shrink-0"
-              />
-              <InfoCard
-                title="Installments 0%"
-                description="We will examine, make a treatment plan, and name the exact cost."
-                href="#appointment"
-                className="snap-start min-w-[82vw] shrink-0"
-              />
-            </div>
-            <div className="flex justify-center gap-1.5 mt-2">
-              <span className="w-6 h-1 rounded-full bg-white/60" />
-              <span className="w-2 h-1 rounded-full bg-white/30" />
-              <span className="w-2 h-1 rounded-full bg-white/30" />
-            </div>
-          </div>
 
         </div>
       </div>

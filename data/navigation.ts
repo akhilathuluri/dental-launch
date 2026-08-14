@@ -6,10 +6,10 @@ export interface NavItem {
 
 export const navItems: NavItem[] = [
   { label: "Home", href: "#home", isActive: true },
-  { label: "Doctors", href: "#clinic" },
-  { label: "Price list", href: "#services" },
+  { label: "Our Clinic", href: "#clinic" },
+  { label: "Services", href: "#services" },
   { label: "Contact", href: "#appointment" },
-  { label: "Team", href: "#team" },
+  { label: "Our Doctor", href: "#team" },
 ];
 
 export const footerNavigation = {

@@ -25,7 +25,12 @@ import { supabase } from '@/lib/supabase';
 import { Footer } from '@/components/layout/Footer';
 import { allSpecializedServices, primaryServices } from '@/data/services';
 import { generateAppointmentPDF } from '@/lib/pdfReceipt';
-import { getClinicDayInfo, ScheduleOverrideItem, sortSlotsChronologically } from '@/lib/clinicSchedule';
+import {
+  getClinicDayInfo,
+  ScheduleOverrideItem,
+  sortSlotsChronologically,
+  formatLocalDateToYYYYMMDD
+} from '@/lib/clinicSchedule';
 
 interface Slot {
   id: string;
@@ -51,7 +56,7 @@ function AppointmentContent() {
   const [stepError, setStepError] = useState('');
 
   // Service, Date, Slot & Overrides State
-  const [selectedService, setSelectedService] = useState('3D scans and x-rays');
+  const [selectedService, setSelectedService] = useState('Digital X-rays');
   const [availableSlots, setAvailableSlots] = useState<Slot[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
@@ -107,7 +112,7 @@ function AppointmentContent() {
     for (let i = 0; i < 14; i++) {
       const d = new Date(today);
       d.setDate(today.getDate() + i);
-      dates.push(d.toISOString().split('T')[0]);
+      dates.push(formatLocalDateToYYYYMMDD(d));
     }
     setDateOptions(dates);
     if (dates.length > 0) {
@@ -323,7 +328,7 @@ function AppointmentContent() {
   return (
     <main className="min-h-screen bg-[#F7F8FA] flex flex-col justify-between">
       {/* Top Header Navigation */}
-      <header className="sticky top-0 z-50 bg-[#141C28] text-white py-4 px-4 sm:px-8 border-b border-white/10 shadow-md">
+      <header className="sticky top-0 z-50 bg-[#0F3521] text-white py-4 px-4 sm:px-8 border-b border-emerald-900/40 shadow-md">
         <div className="max-w-[1400px] mx-auto flex items-center justify-between">
           <Link
             href="/"
@@ -333,7 +338,7 @@ function AppointmentContent() {
             <span>Back to Home</span>
           </Link>
 
-          <Link href="/" className="px-5 py-2 bg-white text-[#111827] font-semibold text-sm rounded-full">
+          <Link href="/" className="px-5 py-2 bg-white text-[#0F3521] font-semibold text-sm rounded-full">
             Gahan Dental
           </Link>
         </div>
@@ -343,12 +348,11 @@ function AppointmentContent() {
       <section className="w-full py-8 sm:py-16 px-4 sm:px-6 lg:px-8 flex-1">
         <div className="max-w-4xl mx-auto bg-white rounded-3xl sm:rounded-[36px] shadow-2xl border border-black/5 overflow-hidden">
           {/* Top Stepper Indicator */}
-          <div className="bg-[#141C28] text-white px-6 py-6 sm:px-10 border-b border-white/10 flex items-center justify-between">
+          <div className="bg-[#0F3521] text-white px-6 py-6 sm:px-10 border-b border-emerald-900/40 flex items-center justify-between">
             <div className="flex items-center gap-2 sm:gap-4">
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold ${
-                  step >= 1 ? 'bg-emerald-500 text-white' : 'bg-white/20 text-slate-400'
-                }`}
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold ${step >= 1 ? 'bg-emerald-500 text-white' : 'bg-white/20 text-slate-400'
+                  }`}
               >
                 1
               </div>
@@ -357,9 +361,8 @@ function AppointmentContent() {
               <ChevronRight className="w-4 h-4 text-slate-500" />
 
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold ${
-                  step >= 2 ? 'bg-emerald-500 text-white' : 'bg-white/20 text-slate-400'
-                }`}
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold ${step >= 2 ? 'bg-emerald-500 text-white' : 'bg-white/20 text-slate-400'
+                  }`}
               >
                 2
               </div>
@@ -368,9 +371,8 @@ function AppointmentContent() {
               <ChevronRight className="w-4 h-4 text-slate-500" />
 
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold ${
-                  step >= 3 ? 'bg-emerald-500 text-white' : 'bg-white/20 text-slate-400'
-                }`}
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold ${step >= 3 ? 'bg-emerald-500 text-white' : 'bg-white/20 text-slate-400'
+                  }`}
               >
                 3
               </div>
@@ -379,9 +381,8 @@ function AppointmentContent() {
               <ChevronRight className="w-4 h-4 text-slate-500" />
 
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold ${
-                  step === 4 ? 'bg-emerald-500 text-white' : 'bg-white/20 text-slate-400'
-                }`}
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold ${step === 4 ? 'bg-emerald-500 text-white' : 'bg-white/20 text-slate-400'
+                  }`}
               >
                 4
               </div>
@@ -414,7 +415,7 @@ function AppointmentContent() {
                   className="space-y-6 max-w-xl mx-auto"
                 >
                   <div className="text-center space-y-2">
-                    <span className="text-xs font-semibold text-[#587A9C] uppercase tracking-widest">
+                    <span className="text-xs font-semibold text-[#165634] uppercase tracking-widest">
                       Step 1 • Patient Contact
                     </span>
                     <h2 className="text-2xl sm:text-4xl font-light text-[#111827]">
@@ -437,7 +438,7 @@ function AppointmentContent() {
                         placeholder="e.g. Sarah Jenkins"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        className="w-full px-4 py-3.5 border border-slate-200 rounded-2xl text-xs sm:text-sm text-[#111827] focus:outline-none focus:border-[#587A9C] focus:ring-1 focus:ring-[#587A9C] min-h-[48px]"
+                        className="w-full px-4 py-3.5 border border-slate-200 rounded-2xl text-xs sm:text-sm text-[#111827] focus:outline-none focus:border-[#165634] focus:ring-1 focus:ring-[#165634] min-h-[48px]"
                       />
                     </div>
 
@@ -453,7 +454,7 @@ function AppointmentContent() {
                           placeholder="e.g. 9876543210"
                           value={whatsapp}
                           onChange={(e) => setWhatsapp(e.target.value)}
-                          className="w-full px-4 py-3.5 border border-slate-200 rounded-2xl text-xs sm:text-sm text-[#111827] focus:outline-none focus:border-[#587A9C] focus:ring-1 focus:ring-[#587A9C] min-h-[48px]"
+                          className="w-full px-4 py-3.5 border border-slate-200 rounded-2xl text-xs sm:text-sm text-[#111827] focus:outline-none focus:border-[#165634] focus:ring-1 focus:ring-[#165634] min-h-[48px]"
                         />
                         <MessageSquare className="w-5 h-5 text-emerald-500 absolute right-4 top-3.5 pointer-events-none" />
                       </div>
@@ -466,7 +467,7 @@ function AppointmentContent() {
                     <button
                       type="submit"
                       disabled={sendingOtp}
-                      className="w-full py-4 px-6 bg-[#141C28] text-white font-semibold text-xs sm:text-sm rounded-full hover:bg-[#1E293B] transition-all min-h-[50px] shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                      className="w-full py-4 px-6 bg-[#165634] text-white font-semibold text-xs sm:text-sm rounded-full hover:bg-[#114227] transition-all min-h-[50px] shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                     >
                       <span>{sendingOtp ? 'Sending WhatsApp OTP...' : 'Send WhatsApp OTP'}</span>
                       <Send className="w-4 h-4" />
@@ -530,7 +531,7 @@ function AppointmentContent() {
                       <button
                         type="submit"
                         disabled={verifyingOtp}
-                        className="w-2/3 py-3.5 px-6 bg-emerald-600 text-white font-semibold text-xs sm:text-sm rounded-full hover:bg-emerald-700 transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                        className="w-2/3 py-3.5 px-6 bg-[#165634] text-white font-semibold text-xs sm:text-sm rounded-full hover:bg-[#114227] transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                       >
                         <span>{verifyingOtp ? 'Verifying...' : 'Verify & Continue'}</span>
                         <CheckCircle2 className="w-4 h-4" />
@@ -551,7 +552,7 @@ function AppointmentContent() {
                   className="space-y-8"
                 >
                   <div className="text-center space-y-2">
-                    <span className="text-xs font-semibold text-[#587A9C] uppercase tracking-widest">
+                    <span className="text-xs font-semibold text-[#165634] uppercase tracking-widest">
                       Step 3 • Appointment Details
                     </span>
                     <h2 className="text-2xl sm:text-4xl font-light text-[#111827]">
@@ -570,7 +571,7 @@ function AppointmentContent() {
                     <select
                       value={selectedService}
                       onChange={(e) => setSelectedService(e.target.value)}
-                      className="w-full px-4 py-3.5 border border-slate-200 rounded-2xl text-xs sm:text-sm text-[#111827] focus:outline-none focus:border-[#587A9C] min-h-[48px] bg-white"
+                      className="w-full px-4 py-3.5 border border-slate-200 rounded-2xl text-xs sm:text-sm text-[#111827] focus:outline-none focus:border-[#165634] min-h-[48px] bg-white"
                     >
                       {serviceOptions.map((srv) => (
                         <option key={srv} value={srv}>
@@ -604,13 +605,12 @@ function AppointmentContent() {
                             key={dateStr}
                             type="button"
                             onClick={() => setSelectedDate(dateStr)}
-                            className={`flex flex-col items-center justify-center min-w-[92px] py-3 px-3 rounded-2xl border transition-all cursor-pointer relative ${
-                              isSelected
-                                ? 'bg-[#141C28] text-white border-[#141C28] shadow-md ring-2 ring-[#141C28]/20'
-                                : dayInfo.isHoliday
+                            className={`flex flex-col items-center justify-center min-w-[92px] py-3 px-3 rounded-2xl border transition-all cursor-pointer relative ${isSelected
+                              ? 'bg-[#141C28] text-white border-[#141C28] shadow-md ring-2 ring-[#141C28]/20'
+                              : dayInfo.isHoliday
                                 ? 'bg-amber-50/60 text-amber-900/80 border-amber-200/80 hover:bg-amber-50'
                                 : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                            }`}
+                              }`}
                           >
                             <span className="text-[10px] uppercase font-semibold opacity-70">
                               {dayName}
@@ -685,33 +685,30 @@ function AppointmentContent() {
                               type="button"
                               disabled={isFull}
                               onClick={() => setSelectedSlot(slot)}
-                              className={`p-3.5 rounded-2xl border text-left transition-all flex flex-col justify-between min-h-[75px] ${
-                                isFull
-                                  ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed opacity-60'
-                                  : isSelected
-                                  ? 'bg-[#587A9C] text-white border-[#587A9C] shadow-md ring-2 ring-[#587A9C]/40'
+                              className={`p-3.5 rounded-2xl border text-left transition-all flex flex-col justify-between min-h-[75px] ${isFull
+                                ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed opacity-60'
+                                : isSelected
+                                  ? 'bg-[#165634] text-white border-[#165634] shadow-md ring-2 ring-[#165634]/40'
                                   : 'bg-white text-[#111827] border-slate-200 hover:border-slate-300 hover:shadow-xs cursor-pointer'
-                              }`}
+                                }`}
                             >
                               <div className="flex items-center justify-between w-full">
                                 <span className="text-xs sm:text-sm font-semibold">
                                   {slot.time_slot}
                                 </span>
                                 <Clock
-                                  className={`w-3.5 h-3.5 ${
-                                    isSelected ? 'text-white' : 'text-slate-400'
-                                  }`}
+                                  className={`w-3.5 h-3.5 ${isSelected ? 'text-white' : 'text-slate-400'
+                                    }`}
                                 />
                               </div>
 
                               <span
-                                className={`text-[10px] font-medium mt-2 ${
-                                  isSelected
-                                    ? 'text-white/90'
-                                    : isFull
+                                className={`text-[10px] font-medium mt-2 ${isSelected
+                                  ? 'text-white/90'
+                                  : isFull
                                     ? 'text-red-400'
                                     : 'text-emerald-600'
-                                }`}
+                                  }`}
                               >
                                 {isFull ? 'Slot Booked' : 'Available'}
                               </span>
@@ -795,7 +792,7 @@ function AppointmentContent() {
 
                     <div className="flex justify-between">
                       <span className="text-slate-500">Treatment:</span>
-                      <span className="font-semibold text-[#587A9C]">{bookingDetails.service}</span>
+                      <span className="font-semibold text-[#165634]">{bookingDetails.service}</span>
                     </div>
 
                     <div className="flex justify-between">
@@ -825,13 +822,13 @@ function AppointmentContent() {
                       disabled={isDownloadingPdf}
                       className="w-full sm:w-1/2 py-3.5 px-6 bg-white text-[#111827] border border-slate-300 font-semibold text-xs sm:text-sm rounded-full hover:bg-slate-100 transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer active:scale-[0.98]"
                     >
-                      <Download className="w-4 h-4 text-[#587A9C]" />
+                      <Download className="w-4 h-4 text-[#165634]" />
                       <span>{isDownloadingPdf ? 'Generating PDF...' : 'Download PDF Pass'}</span>
                     </button>
 
                     <Link
                       href="/"
-                      className="w-full sm:w-1/2 py-3.5 px-6 bg-[#141C28] text-white font-semibold text-xs sm:text-sm rounded-full hover:bg-[#1E293B] transition-colors text-center flex items-center justify-center cursor-pointer shadow-md"
+                      className="w-full sm:w-1/2 py-3.5 px-6 bg-[#165634] text-white font-semibold text-xs sm:text-sm rounded-full hover:bg-[#114227] transition-colors text-center flex items-center justify-center cursor-pointer shadow-md"
                     >
                       Return to Homepage
                     </Link>

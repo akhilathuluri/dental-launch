@@ -3,7 +3,7 @@ import { footerNavigation } from '@/data/navigation';
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="w-full bg-[#141C28] text-white pt-16 pb-12 px-4 sm:px-6 lg:px-8 border-t border-white/10">
+    <footer className="w-full bg-[#0D2619] text-white pt-16 pb-12 px-4 sm:px-6 lg:px-8 border-t border-emerald-900/30">
       <div className="max-w-[1400px] mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-10 lg:gap-8 pb-12 border-b border-white/10">
           
@@ -12,11 +12,11 @@ export const Footer: React.FC = () => {
             <div>
               <a
                 href="#home"
-                className="inline-flex items-center justify-center px-4 py-2 bg-white text-[#111827] font-semibold text-sm tracking-tight rounded-full shadow-sm mb-4"
+                className="inline-flex items-center justify-center px-4 py-2 bg-white text-[#0D2619] font-semibold text-sm tracking-tight rounded-full shadow-sm mb-4"
               >
                 Gahan Dental
               </a>
-              <p className="text-xs sm:text-sm text-slate-400 max-w-sm leading-relaxed font-normal">
+              <p className="text-xs sm:text-sm text-emerald-100/70 max-w-sm leading-relaxed font-normal">
                 Prevention, diagnosis and treatment of dental and oral diseases. High-end modern dental care tailored to your health.
               </p>
             </div>
@@ -26,21 +26,21 @@ export const Footer: React.FC = () => {
               <a
                 href="#"
                 aria-label="Facebook"
-                className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-slate-300 hover:text-white hover:bg-white/20 transition-all text-xs font-semibold"
+                className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-emerald-100 hover:text-white hover:bg-emerald-600/40 transition-all text-xs font-semibold"
               >
                 fb
               </a>
               <a
                 href="#"
                 aria-label="Twitter"
-                className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-slate-300 hover:text-white hover:bg-white/20 transition-all text-xs font-semibold"
+                className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-emerald-100 hover:text-white hover:bg-emerald-600/40 transition-all text-xs font-semibold"
               >
                 tw
               </a>
               <a
                 href="#"
                 aria-label="Instagram"
-                className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-slate-300 hover:text-white hover:bg-white/20 transition-all text-xs font-semibold"
+                className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-emerald-100 hover:text-white hover:bg-emerald-600/40 transition-all text-xs font-semibold"
               >
                 ig
               </a>

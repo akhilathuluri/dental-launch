@@ -3,6 +3,8 @@ export interface Doctor {
   indexStr: string;
   rating: string;
   name: string;
+  qualification: string;
+  specialization: string;
   experience: string;
   bio: string;
   image: string;
@@ -10,21 +12,14 @@ export interface Doctor {
 
 export const doctorsData: Doctor[] = [
   {
-    id: "tony-ware",
-    indexStr: "2/5",
+    id: "dr-manishpala",
+    indexStr: "1/1",
     rating: "5.0",
-    name: "Tony Ware",
-    experience: "Work experience of 6 years",
-    bio: "A qualified and experienced dentist who specialises in providing high-quality and effective dental services. Over the years of his practice, the doctor has successfully helped many patients to improve their oral health, cope with various diseases and dental problems.",
-    image: "/images/doctor-tony.jpg",
-  },
-  {
-    id: "elena-rossi",
-    indexStr: "3/5",
-    rating: "4.9",
-    name: "Dr. Elena Rossi",
-    experience: "Work experience of 9 years",
-    bio: "Expert orthodontist and cosmetic dental surgeon dedicated to creating natural, beautiful smiles with modern clear aligner systems and porcelain restorations.",
-    image: "/images/hero-patient.jpg",
+    name: "Dr. Manishpala",
+    qualification: "MDS - Paedodontics And Preventive Dentistry, BDS",
+    specialization: "Preventive Dentistry, Pediatric Dentist",
+    experience: "13 Years Experience Overall (12 years as specialist)",
+    bio: "Dr. Manishpala, Pediatric Dentist, completed her Masters at Army College of Dental Sciences. Having practiced across leading multi-speciality clinics, she possesses deep clinical expertise in comprehensive dental care including Root Canals, Pulpectomy, and advanced Laser Treatment procedures for infants, kids, and adults.",
+    image: "/images/doctor.png",
   },
 ];

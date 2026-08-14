@@ -26,7 +26,10 @@ import {
   AlertCircle,
   X,
   ExternalLink,
-  Send
+  Send,
+  ChevronLeft,
+  ChevronRight,
+  CalendarCheck
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { primaryServices, allSpecializedServices } from '@/data/services';
@@ -35,7 +38,10 @@ import {
   getClinicDayInfo,
   ScheduleOverrideItem,
   ClinicDayInfo,
-  sortSlotsChronologically
+  sortSlotsChronologically,
+  parseTimeToMinutes,
+  getTodayLocalDateStr,
+  shiftDateString
 } from '@/lib/clinicSchedule';
 
 interface SlotItem {
@@ -76,21 +82,21 @@ export default function AdminDashboardPage() {
   const [overrideUpdating, setOverrideUpdating] = useState(false);
 
   // Slot Management Form State
-  const [targetDate, setTargetDate] = useState<string>(
-    new Date().toISOString().split('T')[0]
-  );
+  const [targetDate, setTargetDate] = useState<string>(getTodayLocalDateStr());
   const [customTimeSlot, setCustomTimeSlot] = useState(STANDARD_TIME_SLOTS[0] || '10:00 AM');
   const [releasing, setReleasing] = useState(false);
 
   // Appointments Filter State
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [bookingDateFilter, setBookingDateFilter] = useState<string>(getTodayLocalDateStr());
+  const [dateFilterMode, setDateFilterMode] = useState<'date' | 'all'>('date');
 
   // Direct Slot Booking on behalf of Patient State
   const [bookingModalSlot, setBookingModalSlot] = useState<SlotItem | null>(null);
   const [adminPatientName, setAdminPatientName] = useState('');
   const [adminWhatsapp, setAdminWhatsapp] = useState('');
-  const [adminSelectedService, setAdminSelectedService] = useState('3D scans and x-rays');
+  const [adminSelectedService, setAdminSelectedService] = useState('Digital X-rays');
   const [isSubmittingBooking, setIsSubmittingBooking] = useState(false);
   const [bookingModalError, setBookingModalError] = useState('');
   const [bookingModalSuccess, setBookingModalSuccess] = useState('');
@@ -411,7 +417,7 @@ export default function AdminDashboardPage() {
     setBookingModalSlot(slot);
     setAdminPatientName('');
     setAdminWhatsapp('');
-    setAdminSelectedService(serviceOptions[0] || '3D scans and x-rays');
+    setAdminSelectedService(serviceOptions[0] || 'Digital X-rays');
     setBookingModalError('');
     setBookingModalSuccess('');
   };
@@ -428,17 +434,33 @@ export default function AdminDashboardPage() {
     router.replace('/admin');
   };
 
-  // Filtered Appointments
-  const filteredAppointments = appointments.filter((appt) => {
-    const matchesSearch =
-      appt.patient_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      appt.whatsapp_number.includes(searchQuery) ||
-      appt.service.toLowerCase().includes(searchQuery.toLowerCase());
+  // Date shifting helper for date filter
+  const handleShiftBookingDate = (days: number) => {
+    const nextDate = shiftDateString(bookingDateFilter, days);
+    setBookingDateFilter(nextDate);
+    setDateFilterMode('date');
+  };
 
-    const matchesStatus = statusFilter === 'all' || appt.status === statusFilter;
+  // Filtered Appointments (Filtered by Search, Status & Date, sorted chronologically)
+  const filteredAppointments = appointments
+    .filter((appt) => {
+      const matchesSearch =
+        appt.patient_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        appt.whatsapp_number.includes(searchQuery) ||
+        appt.service.toLowerCase().includes(searchQuery.toLowerCase());
 
-    return matchesSearch && matchesStatus;
-  });
+      const matchesStatus = statusFilter === 'all' || appt.status === statusFilter;
+
+      const matchesDate = dateFilterMode === 'all' || appt.date === bookingDateFilter;
+
+      return matchesSearch && matchesStatus && matchesDate;
+    })
+    .sort((a, b) => {
+      if (a.date !== b.date) {
+        return b.date.localeCompare(a.date);
+      }
+      return parseTimeToMinutes(a.time_slot) - parseTimeToMinutes(b.time_slot);
+    });
 
   // Render Loading / Checking Auth Gate
   if (checkingAuth) {
@@ -560,11 +582,10 @@ export default function AdminDashboardPage() {
           <button
             type="button"
             onClick={() => setActiveTab('bookings')}
-            className={`pb-3 text-xs sm:text-sm font-semibold tracking-tight transition-colors border-b-2 cursor-pointer ${
-              activeTab === 'bookings'
-                ? 'border-[#141C28] text-[#141C28]'
-                : 'border-transparent text-slate-400 hover:text-slate-700'
-            }`}
+            className={`pb-3 text-xs sm:text-sm font-semibold tracking-tight transition-colors border-b-2 cursor-pointer ${activeTab === 'bookings'
+              ? 'border-[#141C28] text-[#141C28]'
+              : 'border-transparent text-slate-400 hover:text-slate-700'
+              }`}
           >
             Who Booked Slots ({appointments.length})
           </button>
@@ -572,11 +593,10 @@ export default function AdminDashboardPage() {
           <button
             type="button"
             onClick={() => setActiveTab('slots')}
-            className={`pb-3 text-xs sm:text-sm font-semibold tracking-tight transition-colors border-b-2 cursor-pointer ${
-              activeTab === 'slots'
-                ? 'border-[#141C28] text-[#141C28]'
-                : 'border-transparent text-slate-400 hover:text-slate-700'
-            }`}
+            className={`pb-3 text-xs sm:text-sm font-semibold tracking-tight transition-colors border-b-2 cursor-pointer ${activeTab === 'slots'
+              ? 'border-[#141C28] text-[#141C28]'
+              : 'border-transparent text-slate-400 hover:text-slate-700'
+              }`}
           >
             Slot Releasing & Management ({slots.length})
           </button>
@@ -585,31 +605,159 @@ export default function AdminDashboardPage() {
         {/* TAB 1: WHO BOOKED THE SLOTS (APPOINTMENTS DIRECTORY) */}
         {activeTab === 'bookings' && (
           <div className="space-y-6">
-            {/* Search & Filter Header */}
-            <div className="flex flex-col sm:flex-row justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
-              <div className="relative flex-1">
-                <input
-                  type="text"
-                  placeholder="Search patient name, WhatsApp, or treatment..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-[#587A9C]"
-                />
-                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+            {/* Search & Comprehensive Date / Status Filter Toolbar */}
+            <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200 shadow-xs space-y-4">
+              <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+                {/* 1. Search Query Input */}
+                <div className="relative flex-1 min-w-[240px]">
+                  <input
+                    type="text"
+                    placeholder="Search patient name, WhatsApp, or treatment..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm focus:outline-none focus:border-[#587A9C]"
+                  />
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                </div>
+
+                {/* 2. Date Filter Controls */}
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Mode Toggle: Specific Date vs All Dates */}
+                  <div className="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setDateFilterMode('date')}
+                      className={`px-3 py-1.5 rounded-xl font-semibold transition-all cursor-pointer ${dateFilterMode === 'date'
+                        ? 'bg-[#141C28] text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                    >
+                      📅 By Date
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDateFilterMode('all')}
+                      className={`px-3 py-1.5 rounded-xl font-semibold transition-all cursor-pointer ${dateFilterMode === 'all'
+                        ? 'bg-[#141C28] text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                    >
+                      🌐 All Dates
+                    </button>
+                  </div>
+
+                  {/* Date Input with Prev / Next and Today Shortcuts when By Date is active */}
+                  {dateFilterMode === 'date' && (
+                    <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-2xl p-1">
+                      <button
+                        type="button"
+                        onClick={() => handleShiftBookingDate(-1)}
+                        className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 rounded-xl transition-colors cursor-pointer"
+                        title="Previous Day"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+
+                      <input
+                        type="date"
+                        value={bookingDateFilter}
+                        onChange={(e) => {
+                          setBookingDateFilter(e.target.value);
+                          setDateFilterMode('date');
+                        }}
+                        className="px-2 py-1 bg-transparent text-xs font-semibold text-[#111827] focus:outline-none cursor-pointer"
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() => handleShiftBookingDate(1)}
+                        className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 rounded-xl transition-colors cursor-pointer"
+                        title="Next Day"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setBookingDateFilter(getTodayLocalDateStr());
+                          setDateFilterMode('date');
+                        }}
+                        className={`px-2.5 py-1 text-[11px] font-semibold rounded-xl transition-colors cursor-pointer ${bookingDateFilter === getTodayLocalDateStr()
+                          ? 'bg-[#587A9C] text-white shadow-xs'
+                          : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'
+                          }`}
+                      >
+                        Today
+                      </button>
+                    </div>
+                  )}
+
+                  {/* 3. Status Filter Dropdown */}
+                  <div className="flex items-center gap-1.5">
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#587A9C] cursor-pointer"
+                    >
+                      <option value="all">All Statuses</option>
+                      <option value="confirmed">Confirmed</option>
+                      <option value="completed">Completed</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                  </div>
+                </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <Filter className="w-4 h-4 text-slate-400" />
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#587A9C]"
-                >
-                  <option value="all">All Statuses</option>
-                  <option value="confirmed">Confirmed</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
+              {/* Active Filter Description Subbar */}
+              <div className="flex items-center justify-between text-xs text-slate-500 pt-1 border-t border-slate-100">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-[#111827]">
+                    Showing {filteredAppointments.length} bookings
+                  </span>
+                  <span>•</span>
+                  <span>
+                    {dateFilterMode === 'date' ? (
+                      <>
+                        Filtered on <strong className="text-[#111827]">{bookingDateFilter}</strong>
+                        {bookingDateFilter === getTodayLocalDateStr() && (
+                          <span className="ml-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800">
+                            Today
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <strong className="text-[#111827]">All Calendar Dates</strong>
+                    )}
+                  </span>
+                  {statusFilter !== 'all' && (
+                    <>
+                      <span>•</span>
+                      <span className="capitalize">Status: <strong>{statusFilter}</strong></span>
+                    </>
+                  )}
+                </div>
+
+                {dateFilterMode === 'date' ? (
+                  <button
+                    type="button"
+                    onClick={() => setDateFilterMode('all')}
+                    className="text-[11px] text-[#587A9C] hover:underline font-semibold cursor-pointer"
+                  >
+                    View All Dates
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBookingDateFilter(getTodayLocalDateStr());
+                      setDateFilterMode('date');
+                    }}
+                    className="text-[11px] text-[#587A9C] hover:underline font-semibold cursor-pointer"
+                  >
+                    Filter Today's Date
+                  </button>
+                )}
               </div>
             </div>
 
@@ -622,7 +770,7 @@ export default function AdminDashboardPage() {
                       <th className="py-4 px-6">Patient Name</th>
                       <th className="py-4 px-6">WhatsApp Number</th>
                       <th className="py-4 px-6">Treatment Service</th>
-                      <th className="py-4 px-6">Date & Slot</th>
+                      <th className="py-4 px-6">Date &amp; Slot</th>
                       <th className="py-4 px-6">Status</th>
                       <th className="py-4 px-6 text-right">Actions</th>
                     </tr>
@@ -630,8 +778,40 @@ export default function AdminDashboardPage() {
                   <tbody className="divide-y divide-slate-100">
                     {filteredAppointments.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="py-12 text-center text-slate-400 text-xs">
-                          No appointments found matching your search.
+                        <td colSpan={6} className="py-16 text-center text-slate-400 text-xs">
+                          <div className="space-y-3 max-w-sm mx-auto">
+                            <p className="font-semibold text-sm text-[#111827]">
+                              No bookings found
+                            </p>
+                            <p className="text-slate-500 text-xs">
+                              {dateFilterMode === 'date'
+                                ? `No patient bookings found for ${bookingDateFilter}.`
+                                : 'No patient bookings matching the current filters.'}
+                            </p>
+                            <div className="flex items-center justify-center gap-2 pt-2">
+                              {dateFilterMode === 'date' && bookingDateFilter !== getTodayLocalDateStr() && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setBookingDateFilter(getTodayLocalDateStr());
+                                    setDateFilterMode('date');
+                                  }}
+                                  className="px-4 py-2 bg-[#587A9C] text-white font-semibold text-xs rounded-full hover:bg-[#4C6B8A] transition-colors cursor-pointer"
+                                >
+                                  Jump to Today
+                                </button>
+                              )}
+                              {dateFilterMode === 'date' && (
+                                <button
+                                  type="button"
+                                  onClick={() => setDateFilterMode('all')}
+                                  className="px-4 py-2 bg-slate-100 text-slate-700 font-semibold text-xs rounded-full hover:bg-slate-200 transition-colors cursor-pointer"
+                                >
+                                  View All Dates ({appointments.length})
+                                </button>
+                              )}
+                            </div>
+                          </div>
                         </td>
                       </tr>
                     ) : (
@@ -654,13 +834,12 @@ export default function AdminDashboardPage() {
                           </td>
                           <td className="py-4 px-6">
                             <span
-                              className={`px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider inline-block ${
-                                appt.status === 'confirmed'
-                                  ? 'bg-emerald-100 text-emerald-800'
-                                  : appt.status === 'completed'
+                              className={`px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider inline-block ${appt.status === 'confirmed'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : appt.status === 'completed'
                                   ? 'bg-blue-100 text-blue-800'
                                   : 'bg-red-100 text-red-800'
-                              }`}
+                                }`}
                             >
                               {appt.status}
                             </span>
@@ -849,13 +1028,12 @@ export default function AdminDashboardPage() {
                     return (
                       <div
                         key={slot.id}
-                        className={`p-5 rounded-3xl border transition-all flex flex-col justify-between space-y-4 ${
-                          isBooked
-                            ? 'bg-amber-50/50 border-amber-200/80 shadow-xs'
-                            : !slot.is_active
+                        className={`p-5 rounded-3xl border transition-all flex flex-col justify-between space-y-4 ${isBooked
+                          ? 'bg-amber-50/50 border-amber-200/80 shadow-xs'
+                          : !slot.is_active
                             ? 'bg-slate-100/70 border-slate-200 opacity-75'
                             : 'bg-white border-slate-200 shadow-sm hover:shadow-md'
-                        }`}
+                          }`}
                       >
                         {/* Slot Header Info */}
                         <div>
@@ -876,13 +1054,12 @@ export default function AdminDashboardPage() {
 
                             {/* Capacity Badge */}
                             <span
-                              className={`px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider ${
-                                isBooked
-                                  ? 'bg-amber-200/80 text-amber-900'
-                                  : !slot.is_active
+                              className={`px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider ${isBooked
+                                ? 'bg-amber-200/80 text-amber-900'
+                                : !slot.is_active
                                   ? 'bg-slate-200 text-slate-600'
                                   : 'bg-emerald-100 text-emerald-800'
-                              }`}
+                                }`}
                             >
                               {isBooked
                                 ? `Booked (${slot.booked_count}/${slot.max_capacity})`
@@ -933,11 +1110,10 @@ export default function AdminDashboardPage() {
                             <button
                               type="button"
                               onClick={() => handleToggleSlotActive(slot.id, slot.is_active)}
-                              className={`flex-1 py-1.5 px-3 rounded-xl text-[11px] font-semibold uppercase tracking-wider transition-colors cursor-pointer text-center ${
-                                slot.is_active
-                                  ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                                  : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
-                              }`}
+                              className={`flex-1 py-1.5 px-3 rounded-xl text-[11px] font-semibold uppercase tracking-wider transition-colors cursor-pointer text-center ${slot.is_active
+                                ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                                : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                                }`}
                             >
                               {slot.is_active ? 'Disable Slot' : 'Enable Slot'}
                             </button>

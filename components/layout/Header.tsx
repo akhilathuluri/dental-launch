@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, ChevronDown, ArrowRight } from 'lucide-react';
 import { navItems } from '@/data/navigation';
@@ -61,12 +62,12 @@ export const Header: React.FC = () => {
 
         {/* Desktop Right Controls: CTA & Language Selector */}
         <div className="hidden md:flex items-center gap-3">
-          <a
-            href="#appointment"
-            className="px-5 py-2.5 bg-white text-[#111827] font-medium text-xs sm:text-sm rounded-full shadow-xs hover:bg-slate-100 transition-all hover:scale-[1.02] active:scale-[0.98]"
+          <Link
+            href="/appointment"
+            className="px-5 py-2.5 bg-white text-[#111827] font-semibold text-xs sm:text-sm rounded-full shadow-xs hover:bg-slate-100 transition-all hover:scale-[1.02] active:scale-[0.98]"
           >
-            Get in touch
-          </a>
+            Book Appointment
+          </Link>
 
           <button
             type="button"
@@ -80,12 +81,12 @@ export const Header: React.FC = () => {
 
         {/* Mobile Hamburger Menu Button */}
         <div className="flex md:hidden items-center gap-2">
-          <a
-            href="#appointment"
-            className="px-3.5 py-2 bg-white text-[#111827] font-medium text-xs rounded-full shadow-xs"
+          <Link
+            href="/appointment"
+            className="px-3.5 py-2 bg-white text-[#111827] font-semibold text-xs rounded-full shadow-xs"
           >
-            Get in touch
-          </a>
+            Book Appointment
+          </Link>
 
           <button
             type="button"
@@ -111,13 +112,13 @@ export const Header: React.FC = () => {
               className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md md:hidden"
             />
 
-            {/* Floating Glass Sheet */}
+            {/* Floating Glass Sheet - Styled in deep luxury brand forest green */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: -20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: -20 }}
               transition={{ type: 'spring', damping: 25, stiffness: 280 }}
-              className="fixed inset-x-3 top-3 bottom-3 z-50 bg-[#141C28]/95 backdrop-blur-2xl border border-white/20 rounded-[32px] p-6 flex flex-col justify-between overflow-y-auto shadow-2xl md:hidden text-white"
+              className="fixed inset-x-3 top-3 bottom-3 z-50 bg-[#0D2F1D]/95 backdrop-blur-2xl border border-emerald-500/25 rounded-[32px] p-6 flex flex-col justify-between overflow-y-auto shadow-2xl md:hidden text-white"
             >
               {/* Sheet Top Row */}
               <div className="flex items-center justify-between pb-4 border-b border-white/10">
@@ -130,13 +131,13 @@ export const Header: React.FC = () => {
                 </a>
 
                 <div className="flex items-center gap-2">
-                  <a
-                    href="#appointment"
+                  <Link
+                    href="/appointment"
                     onClick={() => setIsOpen(false)}
-                    className="px-4 py-2 bg-white text-[#111827] font-semibold text-xs rounded-full shadow-xs"
+                    className="px-4 py-2 bg-white text-[#0D2F1D] font-semibold text-xs rounded-full shadow-xs"
                   >
-                    Get in touch
-                  </a>
+                    Book Appointment
+                  </Link>
 
                   <button
                     type="button"
@@ -151,7 +152,7 @@ export const Header: React.FC = () => {
 
               {/* Navigation Items List */}
               <div className="py-6 flex flex-col gap-2 my-auto">
-                <span className="text-[11px] font-normal text-slate-400 mb-2">
+                <span className="text-[11px] font-normal text-emerald-300/80 mb-2">
                   Navigation
                 </span>
 
@@ -165,15 +166,15 @@ export const Header: React.FC = () => {
                     transition={{ delay: idx * 0.05 }}
                     className={`flex items-center justify-between px-4 py-3.5 rounded-2xl text-lg font-light transition-all ${
                       item.isActive
-                        ? 'bg-white/15 text-white font-medium border border-white/15 shadow-xs'
-                        : 'text-slate-300 hover:text-white hover:bg-white/5'
+                        ? 'bg-white/20 text-white font-medium border border-white/20 shadow-xs'
+                        : 'text-emerald-100/80 hover:text-white hover:bg-white/10'
                     }`}
                   >
                     <span>{item.label}</span>
                     {item.isActive ? (
                       <span className="w-2 h-2 rounded-full bg-amber-400" />
                     ) : (
-                      <ArrowRight className="w-4 h-4 text-slate-500 opacity-60" />
+                      <ArrowRight className="w-4 h-4 text-emerald-300/60 opacity-60" />
                     )}
                   </motion.a>
                 ))}
@@ -181,18 +182,18 @@ export const Header: React.FC = () => {
 
               {/* Bottom Actions & Metadata */}
               <div className="pt-4 border-t border-white/10 space-y-4">
-                <a
-                  href="#appointment"
+                <Link
+                  href="/appointment"
                   onClick={() => setIsOpen(false)}
-                  className="w-full py-4 flex items-center justify-center gap-2 bg-white text-[#111827] font-semibold text-sm rounded-full shadow-lg hover:bg-slate-100 transition-all"
+                  className="w-full py-4 flex items-center justify-center gap-2 bg-white text-[#0D2F1D] font-semibold text-sm rounded-full shadow-lg hover:bg-emerald-50 transition-all cursor-pointer"
                 >
                   <span>Book Appointment</span>
                   <ArrowRight className="w-4 h-4" />
-                </a>
+                </Link>
 
-                <div className="flex items-center justify-between text-xs text-slate-400 pt-1">
+                <div className="flex items-center justify-between text-xs text-emerald-200/70 pt-1">
                   <span>Practice Hours: 10:00 – 19:30</span>
-                  <span className="text-white font-medium bg-white/10 px-3 py-1 rounded-full border border-white/15">
+                  <span className="text-white font-medium bg-white/15 px-3 py-1 rounded-full border border-white/20">
                     Eng
                   </span>
                 </div>

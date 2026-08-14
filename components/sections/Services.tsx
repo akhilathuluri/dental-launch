@@ -51,7 +51,7 @@ export const Services: React.FC = () => {
   return (
     <section id="services" className="w-full py-16 sm:py-24 px-4 sm:px-8 lg:px-12 bg-[#F7F8FA] text-[#111827]">
       <div className="max-w-[1360px] mx-auto">
-        
+
         {/* Header */}
         <div className="flex flex-row items-end justify-between gap-4 mb-8 sm:mb-12">
           <div>
@@ -71,8 +71,8 @@ export const Services: React.FC = () => {
 
         {/* Primary Asymmetric Showcase Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-5 sm:gap-6 mb-16 sm:mb-24">
-          
-          {/* Card 1: 3D Scans and X-rays (Top Left, Large) */}
+
+          {/* Card 1: Digital X-rays and X-rays (Top Left, Large) */}
           <motion.a
             href="#appointment"
             initial={{ opacity: 0, y: 30 }}
@@ -83,7 +83,7 @@ export const Services: React.FC = () => {
           >
             <Image
               src="/images/service-xray.jpg"
-              alt="3D scans and X-rays"
+              alt="Digital X-rays and X-rays"
               fill
               sizes="(max-width: 1024px) 100vw, 850px"
               className="object-cover opacity-85 group-hover:scale-105 transition-transform duration-700"
@@ -101,7 +101,7 @@ export const Services: React.FC = () => {
 
             <div className="relative z-10">
               <h3 className="text-xl sm:text-3xl font-light text-white tracking-tight mb-1">
-                3d scans and x-rays
+                Digital X-rays
               </h3>
             </div>
           </motion.a>
@@ -245,11 +245,10 @@ export const Services: React.FC = () => {
                   key={cat}
                   type="button"
                   onClick={() => setActiveCategory(cat)}
-                  className={`px-4 py-2 text-xs font-medium rounded-full transition-all duration-200 cursor-pointer ${
-                    activeCategory === cat
-                      ? 'bg-[#1D2736] text-white shadow-xs'
-                      : 'bg-white text-slate-600 hover:bg-slate-200/60 border border-black/5'
-                  }`}
+                  className={`px-4 py-2 text-xs font-medium rounded-full transition-all duration-200 cursor-pointer ${activeCategory === cat
+                    ? 'bg-[#1D2736] text-white shadow-xs'
+                    : 'bg-white text-slate-600 hover:bg-slate-200/60 border border-black/5'
+                    }`}
                 >
                   {cat}
                 </button>
