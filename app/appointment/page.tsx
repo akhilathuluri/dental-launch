@@ -25,6 +25,7 @@ import { supabase } from '@/lib/supabase';
 import { Footer } from '@/components/layout/Footer';
 import { allSpecializedServices, primaryServices } from '@/data/services';
 import { generateAppointmentPDF } from '@/lib/pdfReceipt';
+import { getClinicDayInfo } from '@/lib/clinicSchedule';
 
 interface Slot {
   id: string;
@@ -61,7 +62,7 @@ function AppointmentContent() {
   const [bookingDetails, setBookingDetails] = useState<any>(null);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
 
-  // Available Date Options (Next 7 Days)
+  // Available Date Options (Next 14 Days)
   const [dateOptions, setDateOptions] = useState<string[]>([]);
 
   // Collect all available services list
@@ -87,14 +88,16 @@ function AppointmentContent() {
   useEffect(() => {
     const dates: string[] = [];
     const today = new Date();
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < 14; i++) {
       const d = new Date(today);
       d.setDate(today.getDate() + i);
       dates.push(d.toISOString().split('T')[0]);
     }
     setDateOptions(dates);
     if (dates.length > 0) {
-      setSelectedDate(dates[0]);
+      // Pick first non-holiday date by default if today is a holiday
+      const firstOpenDate = dates.find((d) => !getClinicDayInfo(d).isHoliday) || dates[0];
+      setSelectedDate(firstOpenDate);
     }
   }, []);
 
@@ -563,31 +566,50 @@ function AppointmentContent() {
 
                   {/* 2. Select Date */}
                   <div className="space-y-3">
-                    <label className="block text-xs font-semibold text-[#111827]">
-                      Select Available Date *
-                    </label>
-                    <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-xs font-semibold text-[#111827]">
+                        Select Available Date *
+                      </label>
+                      <span className="text-[11px] text-slate-400">
+                        Scroll for next 14 days
+                      </span>
+                    </div>
+
+                    <div className="flex gap-2.5 overflow-x-auto pb-2 no-scrollbar">
                       {dateOptions.map((dateStr) => {
                         const d = new Date(dateStr + 'T00:00:00');
                         const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
                         const monthDay = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                         const isSelected = selectedDate === dateStr;
+                        const dayInfo = getClinicDayInfo(dateStr);
 
                         return (
                           <button
                             key={dateStr}
                             type="button"
                             onClick={() => setSelectedDate(dateStr)}
-                            className={`flex flex-col items-center justify-center min-w-[85px] py-3 px-3 rounded-2xl border transition-all cursor-pointer ${
+                            className={`flex flex-col items-center justify-center min-w-[92px] py-3 px-3 rounded-2xl border transition-all cursor-pointer relative ${
                               isSelected
-                                ? 'bg-[#141C28] text-white border-[#141C28] shadow-md'
+                                ? 'bg-[#141C28] text-white border-[#141C28] shadow-md ring-2 ring-[#141C28]/20'
+                                : dayInfo.isHoliday
+                                ? 'bg-amber-50/60 text-amber-900/80 border-amber-200/80 hover:bg-amber-50'
                                 : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                             }`}
                           >
-                            <span className="text-[10px] uppercase font-semibold text-slate-400">
+                            <span className="text-[10px] uppercase font-semibold opacity-70">
                               {dayName}
                             </span>
                             <span className="text-xs sm:text-sm font-semibold mt-0.5">{monthDay}</span>
+
+                            {dayInfo.isHoliday ? (
+                              <span className="text-[9px] font-semibold text-amber-700 bg-amber-100/90 px-1.5 py-0.5 rounded-md mt-1">
+                                Holiday
+                              </span>
+                            ) : dayInfo.badgeLabel?.includes('3rd Tue') ? (
+                              <span className="text-[9px] font-semibold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded-md mt-1">
+                                Open (3rd Tue)
+                              </span>
+                            ) : null}
                           </button>
                         );
                       })}
@@ -610,15 +632,25 @@ function AppointmentContent() {
                       </button>
                     </div>
 
-                    {loadingSlots ? (
+                    {getClinicDayInfo(selectedDate).isHoliday ? (
+                      <div className="py-8 px-6 text-center bg-amber-50 rounded-2xl border border-amber-200 text-xs text-amber-900 space-y-2">
+                        <p className="font-semibold text-sm">🏖️ Clinic Closed on This Date</p>
+                        <p className="text-amber-800">
+                          {getClinicDayInfo(selectedDate).reason}. Clinic is closed on every Tuesday (except 3rd Tuesday) and 2nd Sunday of each month.
+                        </p>
+                        <p className="text-[11px] text-amber-700 font-medium pt-1">
+                          Please choose another date above to view available 30-minute time slots (10:00 AM – 07:30 PM).
+                        </p>
+                      </div>
+                    ) : loadingSlots ? (
                       <div className="py-8 text-center text-xs text-slate-400">
                         Loading available slots from clinic database...
                       </div>
                     ) : availableSlots.length === 0 ? (
                       <div className="py-8 text-center bg-slate-50 rounded-2xl border border-slate-200 text-xs text-slate-500 space-y-1">
-                        <p>No active slots released for {selectedDate}.</p>
+                        <p>No active slots released yet for {selectedDate}.</p>
                         <p className="text-[11px] text-slate-400">
-                          Please pick another date or check back later.
+                          Operating hours: 10:00 AM – 07:30 PM (30-min slots). Please check back later or call our clinic.
                         </p>
                       </div>
                     ) : (

@@ -6,9 +6,12 @@ import { motion } from 'framer-motion';
 import { InfoCard } from '@/components/ui/InfoCard';
 import { Header } from '@/components/layout/Header';
 
+import { getClinicDayInfo } from '@/lib/clinicSchedule';
+
 export const Hero: React.FC = () => {
   const [currentDay, setCurrentDay] = useState('');
   const [currentTime, setCurrentTime] = useState('');
+  const [todayStatus, setTodayStatus] = useState('Clinic Open');
 
   useEffect(() => {
     const updateDateTime = () => {
@@ -22,8 +25,11 @@ export const Hero: React.FC = () => {
         })
         .toLowerCase();
 
+      const dayInfo = getClinicDayInfo(now);
+
       setCurrentDay(`Today is ${dayName}`);
       setCurrentTime(formattedTime);
+      setTodayStatus(dayInfo.isHoliday ? `Closed (${dayInfo.badgeLabel})` : 'Clinic Open (10:00–19:30)');
     };
 
     updateDateTime();
@@ -64,18 +70,20 @@ export const Hero: React.FC = () => {
               className="lg:col-span-4 flex flex-col items-start lg:items-end justify-between h-full gap-4 text-xs sm:text-sm text-white/90"
             >
               <div className="space-y-1 text-left lg:text-right">
-                <p className="font-normal text-white text-xs mb-1">Practice Hours</p>
-                <p className="text-white/80 text-xs sm:text-sm">Monday–Tuesday: 09:00–21:00</p>
-                <p className="text-white/80 text-xs sm:text-sm">Friday: 09:00–19:00</p>
-                <p className="text-white/80 text-xs sm:text-sm">Saturday: 11:00–16:00</p>
+                <p className="font-semibold text-white text-xs mb-1 uppercase tracking-wider">Practice Hours</p>
+                <p className="text-white/90 text-xs sm:text-sm font-medium">Daily: 10:00 AM – 07:30 PM</p>
+                <p className="text-white/70 text-[11px]">30-minute interval slots</p>
+                <p className="text-amber-200 text-[11px] font-normal pt-1">
+                  Closed: Tuesdays (except 3rd Tue) &amp; 2nd Sunday
+                </p>
               </div>
 
               {/* Real-time Status Pill Badge with Device Time */}
               <div
                 suppressHydrationWarning
-                className="inline-flex items-center gap-3 px-4 py-2 bg-white/20 backdrop-blur-md border border-white/25 rounded-full text-xs font-normal text-white shadow-xs"
+                className="inline-flex items-center gap-2.5 px-4 py-2 bg-white/20 backdrop-blur-md border border-white/25 rounded-full text-xs font-normal text-white shadow-xs"
               >
-                <span>{currentDay || 'Clinic Open'}</span>
+                <span>{todayStatus}</span>
                 <span className="font-medium font-mono">{currentTime || '--:--'}</span>
               </div>
             </motion.div>

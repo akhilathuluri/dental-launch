@@ -191,7 +191,7 @@ export const Header: React.FC = () => {
                 </a>
 
                 <div className="flex items-center justify-between text-xs text-slate-400 pt-1">
-                  <span>Practice Hours: 09:00 – 21:00</span>
+                  <span>Practice Hours: 10:00 – 19:30</span>
                   <span className="text-white font-medium bg-white/10 px-3 py-1 rounded-full border border-white/15">
                     Eng
                   </span>

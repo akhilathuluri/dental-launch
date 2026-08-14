@@ -67,7 +67,7 @@ export const Appointment: React.FC = () => {
                 <ShieldCheck className="w-4 h-4 text-slate-300" />
                 <span>Zero waiting time guaranteed</span>
               </div>
-              <span>Open 6 days / week</span>
+              <span>10:00 AM – 07:30 PM (30-min slots)</span>
             </div>
 
           </motion.div>

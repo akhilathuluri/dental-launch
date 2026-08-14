@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { primaryServices, allSpecializedServices } from '@/data/services';
+import { STANDARD_TIME_SLOTS, getClinicDayInfo } from '@/lib/clinicSchedule';
 
 interface SlotItem {
   id: string;
@@ -70,7 +71,7 @@ export default function AdminDashboardPage() {
   const [targetDate, setTargetDate] = useState<string>(
     new Date().toISOString().split('T')[0]
   );
-  const [customTimeSlot, setCustomTimeSlot] = useState('09:00 AM');
+  const [customTimeSlot, setCustomTimeSlot] = useState(STANDARD_TIME_SLOTS[0] || '10:00 AM');
   const [releasing, setReleasing] = useState(false);
 
   // Appointments Filter State
@@ -175,12 +176,11 @@ export default function AdminDashboardPage() {
     fetchData();
   };
 
-  // Bulk Release Standard Slots for Selected Date
+  // Bulk Release Standard 20 Slots (10:00 AM – 07:30 PM, 30-min intervals) for Selected Date
   const handleBulkReleaseSlots = async () => {
     setReleasing(true);
-    const standardTimes = ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '04:00 PM', '05:30 PM'];
 
-    const bulkPayload = standardTimes.map((time_slot) => ({
+    const bulkPayload = STANDARD_TIME_SLOTS.map((time_slot) => ({
       date: targetDate,
       time_slot,
       max_capacity: 1,
@@ -603,11 +603,22 @@ export default function AdminDashboardPage() {
             <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <h3 className="text-lg font-semibold text-[#111827] tracking-tight">
-                    Slot Releasing Panel
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    Release new available time slots or directly book slots for walk-in/phone patients.
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-semibold text-[#111827] tracking-tight">
+                      Slot Releasing Panel
+                    </h3>
+                    {getClinicDayInfo(targetDate).isHoliday ? (
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 border border-amber-200">
+                        🏖️ {getClinicDayInfo(targetDate).badgeLabel} (Closed)
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                        ✅ Open (10:00 AM – 07:30 PM)
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Operating schedule: 10:00 AM – 07:30 PM in 30-minute intervals (Closed on Tuesdays except 3rd Tuesday &amp; 2nd Sunday of month).
                   </p>
                 </div>
 
@@ -618,9 +629,18 @@ export default function AdminDashboardPage() {
                   className="px-5 py-2.5 bg-[#587A9C] text-white text-xs font-semibold rounded-full hover:bg-[#4C6B8A] transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer"
                 >
                   <Sparkles className="w-4 h-4" />
-                  <span>Release 6 Standard Slots for {targetDate}</span>
+                  <span>Release All 20 Slots (10:00 AM – 07:30 PM) for {targetDate}</span>
                 </button>
               </div>
+
+              {getClinicDayInfo(targetDate).isHoliday && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-900 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>
+                    <strong>Clinic Holiday:</strong> {getClinicDayInfo(targetDate).reason}. You can still release slots if special clinic hours are needed.
+                  </span>
+                </div>
+              )}
 
               <form onSubmit={handleReleaseSingleSlot} className="flex flex-col sm:flex-row gap-3 pt-2">
                 <input
@@ -635,15 +655,11 @@ export default function AdminDashboardPage() {
                   onChange={(e) => setCustomTimeSlot(e.target.value)}
                   className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm font-semibold text-[#111827] focus:outline-none min-h-[46px] bg-white cursor-pointer"
                 >
-                  <option value="09:00 AM">09:00 AM</option>
-                  <option value="10:00 AM">10:00 AM</option>
-                  <option value="11:00 AM">11:00 AM</option>
-                  <option value="12:00 PM">12:00 PM</option>
-                  <option value="02:00 PM">02:00 PM</option>
-                  <option value="03:30 PM">03:30 PM</option>
-                  <option value="04:00 PM">04:00 PM</option>
-                  <option value="05:30 PM">05:30 PM</option>
-                  <option value="07:00 PM">07:00 PM</option>
+                  {STANDARD_TIME_SLOTS.map((time) => (
+                    <option key={time} value={time}>
+                      {time}
+                    </option>
+                  ))}
                 </select>
 
                 <button
