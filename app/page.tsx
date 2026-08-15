@@ -4,6 +4,7 @@ import { Clinic } from '@/components/sections/Clinic';
 import { Services } from '@/components/sections/Services';
 import { Team } from '@/components/sections/Team';
 import { Appointment } from '@/components/sections/Appointment';
+import { MapSection } from '@/components/sections/MapSection';
 import { Footer } from '@/components/layout/Footer';
 
 export default function Home() {
@@ -21,10 +22,13 @@ export default function Home() {
       {/* 4. Team Section */}
       <Team />
 
-      {/* 5. Book Appointment Section (Replaces FAQ) */}
+      {/* 5. Book Appointment Section */}
       <Appointment />
 
-      {/* 6. Footer Section */}
+      {/* 6. Maps & Location Section */}
+      <MapSection />
+
+      {/* 7. Footer Section */}
       <Footer />
     </main>
   );
