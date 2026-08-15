@@ -1,119 +1,80 @@
 import React from 'react';
-import { footerNavigation } from '@/data/navigation';
+import Link from 'next/link';
+import { MapPin, Phone, Clock, ShieldCheck } from 'lucide-react';
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="w-full bg-[#0D2619] text-white pt-16 pb-12 px-4 sm:px-6 lg:px-8 border-t border-emerald-900/30">
+    <footer className="w-full bg-[#0D2619] text-white pt-12 pb-8 px-4 sm:px-6 lg:px-8 border-t border-emerald-900/30">
       <div className="max-w-[1400px] mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-10 lg:gap-8 pb-12 border-b border-white/10">
-          
-          {/* Brand Info & Socials */}
-          <div className="lg:col-span-2 flex flex-col justify-between gap-6">
-            <div>
-              <a
-                href="#home"
-                className="inline-flex items-center justify-center px-4 py-2 bg-white text-[#0D2619] font-semibold text-sm tracking-tight rounded-full shadow-sm mb-4"
-              >
-                Gahan Dental
-              </a>
-              <p className="text-xs sm:text-sm text-emerald-100/70 max-w-sm leading-relaxed font-normal">
-                Prevention, diagnosis and treatment of dental and oral diseases. High-end modern dental care tailored to your health.
-              </p>
-            </div>
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8 pb-10 border-b border-white/10">
 
-            {/* Social Icons */}
-            <div className="flex items-center gap-3">
-              <a
-                href="#"
-                aria-label="Facebook"
-                className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-emerald-100 hover:text-white hover:bg-emerald-600/40 transition-all text-xs font-semibold"
-              >
-                fb
-              </a>
-              <a
-                href="#"
-                aria-label="Twitter"
-                className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-emerald-100 hover:text-white hover:bg-emerald-600/40 transition-all text-xs font-semibold"
-              >
-                tw
-              </a>
-              <a
-                href="#"
-                aria-label="Instagram"
-                className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-emerald-100 hover:text-white hover:bg-emerald-600/40 transition-all text-xs font-semibold"
-              >
-                ig
-              </a>
+          {/* Brand Info & Address */}
+          <div className="max-w-md space-y-3">
+            <Link
+              href="/"
+              className="inline-flex items-center justify-center px-4 py-2 bg-white text-[#0D2619] font-semibold text-sm tracking-tight rounded-full shadow-sm"
+            >
+              Gahan Dental
+            </Link>
+            <p className="text-xs sm:text-sm text-emerald-100/70 leading-relaxed font-normal">
+              State-of-the-art multi-speciality dental care and pediatric dental treatments in Kukatpally, Hyderabad.
+            </p>
+            <div className="flex items-center gap-2 text-xs text-emerald-200/80 pt-1">
+              <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span>Road No 1, KPHB Colony, Kukatpally, Hyderabad 500072</span>
             </div>
           </div>
 
-          {/* Navigation Columns */}
-          <div>
-            <h4 className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-4">
-              Solutions
-            </h4>
-            <ul className="space-y-2.5">
-              {footerNavigation.solutions.map((item) => (
-                <li key={item.label}>
-                  <a href={item.href} className="text-xs text-slate-300 hover:text-white transition-colors">
-                    {item.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-4">
-              Company
-            </h4>
-            <ul className="space-y-2.5">
-              {footerNavigation.company.map((item) => (
-                <li key={item.label}>
-                  <a href={item.href} className="text-xs text-slate-300 hover:text-white transition-colors">
-                    {item.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-4">
-              Support
-            </h4>
-            <ul className="space-y-2.5">
-              {footerNavigation.support.map((item) => (
-                <li key={item.label}>
-                  <a href={item.href} className="text-xs text-slate-300 hover:text-white transition-colors">
-                    {item.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-4">
-              Legal
-            </h4>
-            <ul className="space-y-2.5">
-              {footerNavigation.legal.map((item) => (
-                <li key={item.label}>
-                  <a href={item.href} className="text-xs text-slate-300 hover:text-white transition-colors">
-                    {item.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
+          {/* Navigation Links: About, Privacy, Terms */}
+          <div className="flex flex-wrap items-center gap-4 sm:gap-8">
+            <Link
+              href="/about"
+              className="text-xs sm:text-sm text-emerald-100/80 hover:text-white transition-colors font-medium"
+            >
+              About
+            </Link>
+            <Link
+              href="/privacy"
+              className="text-xs sm:text-sm text-emerald-100/80 hover:text-white transition-colors font-medium"
+            >
+              Privacy
+            </Link>
+            <Link
+              href="/terms"
+              className="text-xs sm:text-sm text-emerald-100/80 hover:text-white transition-colors font-medium"
+            >
+              Terms
+            </Link>
+            <Link
+              href="/appointment"
+              className="px-5 py-2.5 bg-emerald-600/30 hover:bg-emerald-600/50 text-white border border-emerald-500/30 font-semibold text-xs rounded-full transition-all hover:scale-[1.02]"
+            >
+              Book Appointment
+            </Link>
           </div>
 
         </div>
 
-        {/* Bottom bar */}
-        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-400">
-          <p>© {new Date().getFullYear()} Gahan Dental Dental Clinic. All rights reserved.</p>
-          <p className="text-slate-400">Designed & Engineered with Architectural Precision</p>
+        {/* Bottom Bar */}
+        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-emerald-200/60">
+          <p>© {new Date().getFullYear()} Gahan Dental Clinic. All rights reserved.</p>
+
+          <p className="text-emerald-200/80 text-center">
+            Designed &amp; Developed by{' '}
+            <a
+              href="https://athuluriakhil.vercel.app/contact"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white hover:text-emerald-300 font-semibold underline underline-offset-2 transition-colors cursor-pointer"
+            >
+              Akhil &amp; Chanakya
+            </a>
+          </p>
+
+          <div className="flex items-center gap-1.5">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Certified Dental Practice &bull; 10:00 AM – 07:30 PM</span>
+          </div>
         </div>
       </div>
     </footer>
