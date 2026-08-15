@@ -129,18 +129,26 @@ export function generateAppointmentPDF(data: BookingPDFData) {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
   doc.setTextColor(71, 85, 105); // Slate-600
+  const mapsUrl = 'https://maps.google.com/?q=17.4962759058744,78.39706800857294';
   const guidelines = [
-    '• Clinic Address: Gahan Dental Care Center, Main Boulevard, Practice Suites 4 & 5.',
-    '• Arrival: Please arrive 10 minutes prior to your allocated slot for initial check-in.',
-    '• WhatsApp Support: A digital confirmation ticket has also been sent to your WhatsApp number.',
-    '• Zero Waiting Time: Your reserved time slot is guaranteed with no waiting line.',
-    '• Assistance: For rescheduling or questions, reach clinic helpline at +1 (800) 456-7890.',
+    { text: '• Clinic Address: Road No 1, KPHB Colony, Kukatpally, Hyderabad, Telangana 500072', isLink: false },
+    { text: `• Google Maps Location: ${mapsUrl}`, isLink: true, url: mapsUrl },
+    { text: '• Arrival: Please arrive 10 minutes prior to your allocated slot for initial check-in.', isLink: false },
+    { text: '• WhatsApp Support: A digital confirmation ticket has also been sent to your WhatsApp number.', isLink: false },
+    { text: '• Zero Waiting Time: Your reserved time slot is guaranteed with no waiting line.', isLink: false },
+    { text: '• Assistance: For rescheduling or questions, reach clinic helpline directly.', isLink: false },
   ];
 
   let guidelineY = y + 6;
-  guidelines.forEach((line) => {
-    doc.text(line, margin, guidelineY);
-    guidelineY += 5.5;
+  guidelines.forEach((item) => {
+    if (item.isLink && item.url) {
+      doc.setTextColor(22, 101, 52); // Brand Emerald #166534
+      doc.textWithLink(item.text, margin, guidelineY, { url: item.url });
+      doc.setTextColor(71, 85, 105); // Reset to slate-600
+    } else {
+      doc.text(item.text, margin, guidelineY);
+    }
+    guidelineY += 5.2;
   });
 
   // 6. Security Watermark & Footer

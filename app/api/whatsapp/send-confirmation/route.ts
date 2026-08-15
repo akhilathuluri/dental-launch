@@ -30,7 +30,7 @@ export async function POST(request: Request) {
       // Send standard text message
       const messageText = `🎉 *Gahan Dental Clinic — Booking Confirmed!*\n\nDear *${patient_name}*,\n\nYour dental appointment has been successfully scheduled.\n\n📌 *Booking Details:*\n- *Ref ID:* ${
         appointment_id || 'CONFIRMED'
-      }\n- *Treatment:* ${service}\n- *Date:* ${date}\n- *Time Slot:* ${time_slot}\n\n📍 *Clinic Address:*\nGahan Dental Care Center, Main Boulevard\n*Contact:* +1 (800) 456-7890\n\nThank you for choosing Gahan Dental! We look forward to welcoming you.`;
+      }\n- *Treatment:* ${service}\n- *Date:* ${date}\n- *Time Slot:* ${time_slot}\n\n📍 *Clinic Address:*\nRoad No 1, KPHB Colony, Kukatpally, Hyderabad, Telangana 500072\n*Google Maps:* https://maps.google.com/?q=17.4962759058744,78.39706800857294\n\nThank you for choosing Gahan Dental! We look forward to welcoming you.`;
 
       whatsappResult = await sendWhatsAppMessage(sanitizedPhone, messageText);
     }
